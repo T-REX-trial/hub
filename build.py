@@ -13,6 +13,7 @@ Nothing readable is ever stored in the repository.
 import base64, datetime, json, os, subprocess, sys, urllib.parse, urllib.request, shutil, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent
+SRC = ROOT / "src" if (ROOT / "src" / "template.html").exists() else ROOT
 BASE = "appUIdFlPDYSWeJ2A"
 TABLE = "tblj8GiDWb5NkGzlQ"
 FIELDS = [
@@ -78,12 +79,12 @@ def main():
     records = fetch_airtable(os.environ.get("AIRTABLE_TOKEN") or (None if os.environ.get("LOCAL_RECORDS") else need("AIRTABLE_TOKEN")))
     at = {"records": records, "fetchedAt": datetime.datetime.now(datetime.timezone.utc).isoformat()}
 
-    tpl = (ROOT / "src" / "template.html").read_text("utf-8")
-    logo = base64.b64encode((ROOT / "src" / "logo.svg").read_bytes()).decode()
+    tpl = (SRC / "template.html").read_text("utf-8")
+    logo = base64.b64encode((SRC / "logo.svg").read_bytes()).decode()
     page = (tpl.replace("__LOGO__", "data:image/svg+xml;base64," + logo)
                .replace("__CONTENT__", content)
                .replace("__AIRTABLE__", "window.TREX_AT = " + json.dumps(at, ensure_ascii=False).replace("</", "<\\/") + ";")
-               .replace("__APP__", (ROOT / "src" / "app.js").read_text("utf-8")))
+               .replace("__APP__", (SRC / "app.js").read_text("utf-8")))
 
     work = ROOT / "_build"
     shutil.rmtree(work, ignore_errors=True)
