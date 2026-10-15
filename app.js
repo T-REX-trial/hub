@@ -129,11 +129,33 @@
       sb.append(tr);
     });
     $('g-sites').textContent = siteDocs.filter(d=>d.data().status==='Recruiting').length;
+    renderMap();
     if (typeof renderCalendar==='function' && typeof cal!=='undefined') renderCalendar();
   }
 
+  /* ---------- Map ---------- */
+  function renderMap(){
+    const P = window.TREX_PROJ; const g = $('map-pins'); if (!P || !g) return;
+    const NS='http://www.w3.org/2000/svg'; g.textContent='';
+    const xy = (lon,lat)=>{ const l=lon*Math.PI/180, f=lat*Math.PI/180; return [P.scale*l + P.translate[0], -P.scale*Math.log(Math.tan(Math.PI/4+f/2)) + P.translate[1]]; };
+    const LEFT = new Set(['Ghent','Limoges','Barcelona','Basel']);
+    siteDocs.map(d=>d.data()).filter(s=>typeof s.lat==='number').sort((a,b)=> (a.status==='Recruiting') - (b.status==='Recruiting')).forEach(s=>{
+      const [x,y]=xy(s.lon,s.lat); const on = s.status==='Recruiting';
+      const cnt = (typeof AT!=='undefined' && AT.bySite && AT.bySite[norm(s.name)]) ? AT.bySite[norm(s.name)].n : 0;
+      const grp=document.createElementNS(NS,'g'); grp.setAttribute('class','site'); grp.setAttribute('tabindex','0');
+      grp.setAttribute('aria-label', s.name+', '+(s.country||'')+': '+(s.status||'To confirm')+', '+cnt+' randomised');
+      const tt=document.createElementNS(NS,'title'); tt.textContent = s.name+' ('+(s.country||'')+') · '+(s.status||'To confirm')+' · '+cnt+' randomised' + (s.lead ? ' · Lead: '+s.lead : ''); grp.append(tt);
+      if (on){ const h=document.createElementNS(NS,'circle'); h.setAttribute('class','halo'); h.setAttribute('cx',x); h.setAttribute('cy',y); h.setAttribute('r',18); grp.append(h); }
+      const c=document.createElementNS(NS,'circle'); c.setAttribute('class','pinc'+(on?' on':'')); c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',8); grp.append(c);
+      const left = LEFT.has(s.name);
+      const lb=document.createElementNS(NS,'text'); lb.setAttribute('class','plbl'); lb.setAttribute('x', left ? x-14 : x+14); lb.setAttribute('y', y+5); lb.setAttribute('text-anchor', left?'end':'start'); lb.textContent=s.name; grp.append(lb);
+      if (on){ const ct=document.createElementNS(NS,'text'); ct.setAttribute('class','pcount'); ct.setAttribute('x', left ? x-14 : x+14); ct.setAttribute('y', y+21); ct.setAttribute('text-anchor', left?'end':'start'); ct.textContent = cnt+' randomised'; grp.append(ct); }
+      g.append(grp);
+    });
+  }
+
   /* ---------- Team ---------- */
-  const RTYPES = { lead:['Trial leadership','r-lead','e-lead'], inv:['Investigator','r-inv','e-inv'], coord:['Coordinator / study staff','r-coord','e-coord'], data:['Data & statistics','r-data','e-data'], pm:['Project management','r-pm','e-pm'] };
+  const RTYPES = { lead:['Trial leadership','r-lead','e-lead'], inv:['Site PI / investigator','r-inv','e-inv'], coord:['Coordinator / study staff','r-coord','e-coord'], admin:['Administration','r-pm','e-pm'], data:['Data & statistics','r-data','e-data'], pm:['ECOPOP project management','r-blue2','e-blue2'] };
   const leg = $('role-legend');
   Object.values(RTYPES).forEach(([lbl,cls])=>{ const c=document.createElement('span'); c.className='rchip '+cls; c.textContent=lbl; leg.append(c); });
   function person(r, compact){
@@ -142,6 +164,7 @@
     const nm=document.createElement('div'); nm.className='nm'; nm.textContent=[r.first,r.last].filter(Boolean).join(' ');
     const rl=document.createElement('div'); rl.className='rl';
     const chip=document.createElement('span'); chip.className='rchip '+t[1]; chip.textContent=r.role||t[0]; rl.append(chip);
+    if (r.sitePI && !compact){ const c2=document.createElement('span'); c2.className='rchip r-inv'; c2.textContent='Site PI · '+r.sitePI; rl.append(c2); }
     if (!compact && r.site){ const s=document.createElement('span'); s.textContent=r.site; rl.append(s); }
     p.append(nm, rl);
     if (r.email){ const a=document.createElement('a'); a.href='mailto:'+r.email; a.textContent=r.email; p.append(a); }
@@ -159,8 +182,9 @@
   // sites
   const siteGrid=document.createElement('div'); siteGrid.className='sitegrid';
   const sitesMap = {};
-  TEAM.filter(r=>r.type==='inv'||r.type==='coord').forEach(r=>{ (sitesMap[r.site||'Other'] ||= []).push(r); });
-  const RANK = { inv:0, coord:1 };
+  TEAM.filter(r=>r.type==='inv'||r.type==='coord'||r.type==='admin').forEach(r=>{ (sitesMap[r.site||'Other'] ||= []).push(r); });
+  TEAM.filter(r=>r.type==='lead' && r.sitePI).forEach(r=>{ (sitesMap[r.sitePI] ||= []).push(Object.assign({}, r, {type:'inv', role:'Site PI', _lead:r.role})); });
+  const RANK = { inv:0, coord:1, admin:2 };
   Object.keys(sitesMap).sort().forEach(site=>{
     const c=document.createElement('div'); c.className='sitecard';
     const hd=document.createElement('header'); const b=document.createElement('b'); b.textContent=site; const sp=document.createElement('span');
@@ -169,7 +193,7 @@
     const RO={'Site PI':0,'Local co-PI':1,'Investigator':2}; sitesMap[site].sort((x,y)=> (RANK[x.type]-RANK[y.type]) || ((RO[x.role]??5)-(RO[y.role]??5)) || byLast(x,y)).forEach(r=>c.append(person(r,true)));
     siteGrid.append(c);
   });
-  group('Site teams', 'investigators and coordinators per centre', siteGrid);
+  group('Site teams', 'site PIs, investigators, coordinators and administration per centre', siteGrid);
   // data + project management
   const dGrid=document.createElement('div'); dGrid.className='pgrid'; TEAM.filter(r=>r.type==='data').sort(byLast).forEach(r=>dGrid.append(person(r)));
   if (dGrid.children.length) group('Data & statistics', '', dGrid);
