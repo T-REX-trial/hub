@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>T-REX Trial Hub</title>
+<link rel="icon" href="__LOGO__">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky brand bar + teal "at a glance" band, then working sections in a two-column grid that stacks on phones */
+:root{
+  --bg:#F3F6F5; --surface:#FFFFFF; --surface-2:#EEF3F2; --line:#DCE5E3;
+  --ink:#0F2D2B; --muted:#5A706E; --teal:#0E5E5A; --teal-hover:#0A4542; --on-teal:#FFFFFF;
+  --blush:#F7CFC7; --blush-ink:#6E3328; --sprout:#C6E9C9; --sprout-ink:#1E4A25;
+  --hero:#0E5E5A; --hero-deep:#0A4542; --hero-ink:#FFFFFF; --hero-soft:#F7CFC7;
+  --ok:#1F7A3A; --ok-bg:#DDF1E1; --warn:#8A5300; --warn-bg:#FBEBCF; --bad:#A3221B; --bad-bg:#F9DEDC;
+  --display:'Sora',ui-sans-serif,system-ui,sans-serif; --text:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --pre-bg:#E6F1F0; --pre-line:#0E5E5A; --as-line:#3E9A5B; --crt-line:#C0614F; --ev-line:#C98A1A; --line-strong:#A9BCB9;
+  --radius:16px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B1C1B; --surface:#112826; --surface-2:#163331; --line:#25423F;
+  --ink:#E4EFED; --muted:#9BB4B0; --teal:#6CC2BA; --teal-hover:#8AD3CC; --on-teal:#06211F;
+  --blush:#4A2B27; --blush-ink:#F9D7D0; --sprout:#1F3D27; --sprout-ink:#CDEFD1;
+  --ok:#7FD39A; --ok-bg:#16351F; --warn:#F2C072; --warn-bg:#3A2A0E; --bad:#F2A49E; --bad-bg:#3D1B19; --pre-bg:#123634; --pre-line:#6CC2BA; --as-line:#7FD39A; --crt-line:#F2A49E; --ev-line:#F2C072; --line-strong:#3C5E5A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1C1B; --surface:#112826; --surface-2:#163331; --line:#25423F;
+  --ink:#E4EFED; --muted:#9BB4B0; --teal:#6CC2BA; --teal-hover:#8AD3CC; --on-teal:#06211F;
+  --blush:#4A2B27; --blush-ink:#F9D7D0; --sprout:#1F3D27; --sprout-ink:#CDEFD1;
+  --ok:#7FD39A; --ok-bg:#16351F; --warn:#F2C072; --warn-bg:#3A2A0E; --bad:#F2A49E; --bad-bg:#3D1B19; --pre-bg:#123634; --pre-line:#6CC2BA; --as-line:#7FD39A; --crt-line:#F2A49E; --ev-line:#F2C072; --line-strong:#3C5E5A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--text);font-size:15px;line-height:1.55}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+a{color:var(--teal)} a:hover{color:var(--teal-hover)}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;align-items:center;gap:20px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.brand b{font-family:var(--display);font-weight:800;letter-spacing:.12em;font-size:18px;color:var(--teal)}
+.brand span{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.nav a{font-size:14px;font-weight:500;text-decoration:none;color:var(--muted);padding:8px 10px;border-radius:999px}
+.nav a:hover{color:var(--ink);background:var(--surface-2)}
+
+/* hero band */
+.hero{background:var(--hero);color:var(--hero-ink);position:relative;overflow:hidden}
+.hero svg.rings{position:absolute;right:-120px;top:-160px;width:760px;height:560px;pointer-events:none}
+.hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:32px;padding-block:40px 44px}
+.hero h1{font-size:clamp(26px,3.4vw,38px);line-height:1.15;font-weight:700}
+.hero p{color:var(--hero-soft);margin:12px 0 0;max-width:60ch}
+.hero .eyebrow{color:var(--sprout)}
+:root[data-theme="dark"] .hero .eyebrow{color:#C6E9C9}
+.hero .eyebrow{color:#C6E9C9}
+.quick{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.qbtn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 16px;border-radius:12px;background:rgba(255,255,255,.12);color:var(--hero-ink);text-decoration:none;font-weight:600;font-size:14px;border:1px solid rgba(255,255,255,.22)}
+.qbtn:hover{background:rgba(255,255,255,.2);color:var(--hero-ink)}
+.qbtn.off{opacity:.6}
+.glance{background:rgba(6,33,31,.35);border:1px solid rgba(255,255,255,.14);border-radius:var(--radius);padding:22px;display:flex;flex-direction:column;gap:16px;align-self:start}
+.glance .big{font-family:var(--display);font-weight:800;font-size:44px;line-height:1}
+.glance .big small{font-size:18px;font-weight:600;color:var(--hero-soft)}
+.meter{height:12px;border-radius:6px;background:rgba(255,255,255,.15);overflow:hidden}
+.meter i{display:block;height:100%;background:#FFFFFF;border-radius:6px;width:0%;transition:width .6s ease}
+.gstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.gstats div{font-size:13px;color:var(--hero-soft)}
+.gstats strong{display:block;font-family:var(--display);font-size:22px;color:var(--hero-ink)}
+
+/* privacy strip */
+.privacy{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;margin-top:-22px;position:relative;font-size:14px}
+.privacy svg{flex-shrink:0;margin-top:2px}
+
+/* sections */
+main{display:flex;flex-direction:column;gap:28px;padding-block:28px 64px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0;scroll-margin-top:80px}
+.shead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.shead h2{font-size:22px}
+.shead p{margin:4px 0 0;color:var(--muted);font-size:14px;max-width:62ch}
+
+/* controls */
+label{font-size:13px;font-weight:600;color:var(--muted)}
+input[type=text],input[type=number],input[type=date],input[type=url],select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-height:42px;width:100%}
+textarea{min-height:84px;resize:vertical}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.row .field{flex:1 1 160px}
+button{font:inherit;cursor:pointer}
+.btn{min-height:42px;padding:9px 16px;border-radius:10px;border:1px solid var(--teal);background:var(--teal);color:var(--on-teal);font-weight:600}
+.btn:hover{background:var(--teal-hover);border-color:var(--teal-hover)}
+.btn.ghost{background:transparent;color:var(--teal)}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.small{min-height:34px;padding:5px 11px;font-size:13px}
+.hint{font-size:13px;color:var(--muted)}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.p-ok{background:var(--ok-bg);color:var(--ok)} .p-warn{background:var(--warn-bg);color:var(--warn)} .p-bad{background:var(--bad-bg);color:var(--bad)} .p-neutral{background:var(--surface-2);color:var(--muted)}
+.p-as{background:var(--sprout);color:var(--sprout-ink)} .p-crt{background:var(--blush);color:var(--blush-ink)}
+
+/* tables */
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;background:var(--surface-2);padding:10px 12px;white-space:nowrap}
+td{padding:10px 12px;border-top:1px solid var(--line);vertical-align:top}
+td select,td input{min-height:34px;padding:5px 8px;font-size:13px}
+td input[type=number]{width:80px}
+
+/* eligibility */
+.checks{display:flex;flex-direction:column;gap:2px}
+.chk{display:flex;gap:12px;align-items:flex-start;padding:9px 10px;border-radius:10px;font-size:14px;color:var(--ink);font-weight:400;cursor:pointer}
+.chk:hover{background:var(--surface-2)}
+.chk input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--teal);flex-shrink:0}
+.verdict{border-radius:12px;padding:14px 16px;font-weight:600;display:flex;gap:10px;align-items:center}
+.v-ok{background:var(--ok-bg);color:var(--ok)} .v-bad{background:var(--bad-bg);color:var(--bad)} .v-wait{background:var(--surface-2);color:var(--muted)}
+.cols2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+h3{font-size:15px;font-family:var(--display);font-weight:700}
+
+/* planner */
+.proc{display:flex;flex-wrap:wrap;gap:4px}
+.proc span{font-size:12px;padding:2px 8px;border-radius:6px;background:var(--surface-2);color:var(--ink)}
+.proc span.key{background:var(--sprout);color:var(--sprout-ink)}
+tr.due td{background:var(--warn-bg)}
+
+/* dosing */
+.result{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.result div{background:var(--surface-2);border-radius:12px;padding:14px}
+.result strong{display:block;font-family:var(--display);font-size:24px;color:var(--teal)}
+.result span{font-size:13px;color:var(--muted)}
+.rules{display:flex;flex-direction:column;gap:8px;font-size:14px}
+.rules div{display:grid;grid-template-columns:160px minmax(0,1fr);gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+.rules b{font-weight:600}
+
+/* updates */
+.updates{display:flex;flex-direction:column;gap:10px}
+.upd{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.upd:first-child{border-top:0}
+.upd img{width:32px;height:32px;border-radius:16px;flex-shrink:0}
+.upd .meta{font-size:12px;color:var(--muted)}
+.upd p{margin:2px 0 0;white-space:pre-wrap}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:14px}
+
+/* team */
+.team{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.person{background:var(--surface-2);border-radius:12px;padding:14px}
+.person .role{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.person .name{font-weight:600;margin-top:4px}
+.person .where{font-size:13px;color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.fact{border:1px solid var(--line);border-radius:12px;padding:14px}
+.fact strong{display:block;font-family:var(--display);font-size:18px}
+.fact span{font-size:13px;color:var(--muted)}
+
+.fuchips{display:flex;gap:10px;flex-wrap:wrap}
+.fuchips div{background:var(--surface-2);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--muted)}
+.fuchips strong{font-family:var(--display);font-size:20px;color:var(--ink);margin-right:6px}
+.gsplit{display:flex;gap:8px;flex-wrap:wrap}
+.gsplit span{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
+.gsplit .a{background:#C6E9C9;color:#1E4A25} .gsplit .c{background:#F7CFC7;color:#6E3328}
+tr.soon td{background:var(--warn-bg)}
+.sched{font-size:13px}
+.sched th,.sched td{text-align:center;padding:8px 6px}
+.sched th:first-child,.sched td:first-child{text-align:left;white-space:nowrap;position:sticky;left:0;background:var(--surface);z-index:1}
+.sched thead th:first-child{background:var(--surface-2)}
+.sched td.y::before{content:"";display:inline-block;width:12px;height:12px;border-radius:6px;background:var(--teal)}
+.sched td.crf{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.sched td.blank{color:var(--line-strong)}
+.vbtn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:help}
+.vbtn:hover,.vbtn:focus-visible{border-color:var(--teal)}
+button.ev{font:inherit;font-size:12px;text-align:left;width:100%;cursor:help}
+.tip{position:fixed;z-index:50;max-width:300px;background:var(--ink);color:var(--bg);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.45;box-shadow:0 10px 30px rgba(0,0,0,.25);pointer-events:none}
+.tip[hidden]{display:none}
+.tip b{font-family:var(--display);font-size:14px;display:block}
+.tip .sub{opacity:.75;font-size:12px;margin-bottom:6px;display:block}
+.tip ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
+.tip li{display:flex;justify-content:space-between;gap:12px}
+.tip li i{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.75;white-space:nowrap}
+.calnav{display:flex;align-items:center;gap:8px}
+.calnav strong{font-family:var(--display);font-size:18px;min-width:150px;text-align:center}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{min-height:38px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:500;font-size:14px}
+.tabs button[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.tabs button .c{font-family:var(--mono);font-size:12px;opacity:.8;margin-left:6px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .ev{width:22px;height:12px;display:inline-block;border-radius:4px}
+.dot{width:10px;height:10px;border-radius:5px;display:inline-block}
+.dot.as{background:#3E9A5B} .dot.crt{background:#D07C6E}
+.calbox{overflow-x:auto}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(110px,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:770px}
+.calgrid .dow{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);padding:8px 10px}
+.calgrid .day{min-height:104px;border-top:1px solid var(--line);border-left:1px solid var(--line);padding:6px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.calgrid .day:nth-child(7n+1){border-left:0}
+.calgrid .day.out{background:var(--bg)}
+.calgrid .day.out .dn{opacity:.45}
+.calgrid .day.today .dn{background:var(--teal);color:var(--on-teal);border-radius:999px}
+.dn{font-size:12px;font-weight:600;align-self:flex-start;padding:1px 7px}
+.ev{display:flex;align-items:center;gap:5px;font-size:12px;line-height:1.3;padding:3px 6px;border-radius:6px;background:var(--surface-2);color:var(--ink);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ev.est{border:1.5px dashed var(--muted);background:transparent}
+.ev.booked{border:1.5px solid var(--teal);background:var(--surface)}
+.ev.done{background:var(--surface-2);color:var(--muted);text-decoration:line-through;border:1.5px solid transparent}
+.ev .dot{flex-shrink:0}
+.more{font-size:11px;color:var(--muted)}
+.agenda{display:none;flex-direction:column;gap:8px}
+.agenda .ag{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.agenda .ag b{font-family:var(--display);min-width:64px}
+@media (max-width:700px){.calbox{display:none}.agenda{display:flex}}
+.nav a[aria-selected="true"]{color:var(--on-teal);background:var(--teal)}
+.panel{display:flex;flex-direction:column;gap:28px}
+.panel[hidden]{display:none!important}
+.toc{display:flex;gap:8px;flex-wrap:wrap}
+.toc a{font-size:13px;text-decoration:none;padding:4px 10px;border-radius:999px;background:var(--surface-2);color:var(--ink)}
+.toc a:hover{background:var(--sprout);color:var(--sprout-ink)}
+.guide{max-width:78ch;display:flex;flex-direction:column;gap:10px;font-size:15.5px}
+.guide h3{font-size:19px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);scroll-margin-top:90px}
+.guide h3:first-child{margin-top:0;padding-top:0;border-top:0}
+.guide h4{font-size:15px;font-family:var(--display);margin:6px 0 0}
+.guide p{margin:0}
+.guide ol,.guide ul{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.guide ol{counter-reset:st}
+.guide ol li{counter-increment:st;display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start}
+.guide ol li::before{content:counter(st);width:26px;height:26px;border-radius:13px;background:var(--teal);color:var(--on-teal);font-family:var(--display);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.guide ul li{display:grid;grid-template-columns:14px minmax(0,1fr);gap:10px}
+.guide ul li::before{content:"";width:8px;height:8px;border-radius:4px;background:var(--blush-ink);margin-top:9px;opacity:.7}
+.guide code,.hint code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);padding:1px 5px;border-radius:5px}
+.callout{border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start}
+.callout.warn{background:var(--warn-bg);color:var(--warn)}
+.callout.note{background:var(--sprout);color:var(--sprout-ink)}
+.callout strong{color:inherit}
+.actionbar{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--sprout);color:var(--sprout-ink);border-radius:14px;padding:16px 18px}
+.actionbar[hidden]{display:none}
+.actionbar div{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 280px}
+.actionbar span{font-size:14px}
+.btn.big{min-height:46px;padding:11px 20px;font-size:15px;text-decoration:none;display:inline-flex;align-items:center;border-radius:12px;color:var(--on-teal)}
+.btn.big:hover{color:var(--on-teal)}
+/* CRF flowchart */
+.flow{margin:0;display:flex;flex-direction:column;align-items:stretch;gap:0;border:1px solid var(--line);border-radius:16px;padding:20px;background:var(--surface);min-width:0}
+.flow[hidden]{display:none}
+.flow figcaption{font-size:14px;color:var(--muted);margin-bottom:12px}
+.flow figcaption strong{font-family:var(--display);color:var(--ink);font-size:17px;margin-right:8px}
+.flowlegend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-bottom:18px}
+.flowlegend span{display:inline-flex;align-items:center;gap:6px}
+.k{width:14px;height:14px;border-radius:4px;display:inline-block;border:1.5px solid}
+.fstage{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.fstage .fbox{position:relative}
+.fbox{border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.4;border:1.5px solid;display:flex;flex-direction:column;gap:3px;min-width:0;overflow-wrap:break-word;hyphens:auto;height:auto}
+.fbox b{font-family:var(--mono);font-weight:500;font-size:12px;letter-spacing:.06em}
+.fbox span{font-size:12px;opacity:.85}
+.fbox.wide{align-self:center;width:min(440px,100%);text-align:center;font-family:var(--display);font-weight:600}
+.fbox.wide span{font-family:var(--text);font-weight:400}
+.fbox.ghost{border-style:dashed;font-size:13px}
+.pre,.k.pre{background:var(--pre-bg);border-color:var(--pre-line);color:var(--ink)}
+.as,.k.as{background:var(--sprout);border-color:var(--as-line);color:var(--sprout-ink)}
+.crt,.k.crt{background:var(--blush);border-color:var(--crt-line);color:var(--blush-ink)}
+.fu,.k.fu{background:var(--surface);border-color:var(--line-strong);color:var(--ink)}
+.ev,.k.ev{background:var(--warn-bg);border-color:var(--ev-line);color:var(--ink)}
+.end,.k.end{background:var(--surface-2);border-color:var(--line-strong);color:var(--ink)}
+.farrow{align-self:center;width:2px;height:26px;background:var(--muted);position:relative;margin:4px 0 8px}
+.farrow::after{content:"";position:absolute;left:-5px;bottom:-6px;border:6px solid transparent;border-top:7px solid var(--muted);border-bottom:0}
+.fsplit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;border-top:2px solid var(--muted);margin-top:6px}
+.fcol{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.fcol .farrow{margin-top:0}
+.armlabel{font-family:var(--display);font-weight:700;font-size:14px;text-align:center;border:0;background:transparent}
+.armlabel.as{color:var(--as-line)} .armlabel.crt{color:var(--crt-line)}
+.fpair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.fgroup{border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;border:1.5px dashed}
+.fgroup.fu{background:var(--surface-2);border-color:var(--line-strong)}
+.fgroup.ev{background:transparent;border-color:var(--ev-line)}
+.ghead{font-weight:600;font-size:14px}
+.fgrid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.fnote{margin:6px 0 0;font-size:12px;color:var(--muted)}
+.flow .fstage + .fnote{margin-top:8px}
+@media (max-width:560px){
+  .fpair,.fsplit{grid-template-columns:minmax(0,1fr)}
+}
+/* team */
+.teamlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.member{background:var(--surface-2);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.member .role{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.member .name{font-weight:600}
+.member .mail{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);min-width:0}
+.member .mail span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:all}
+.member .tools{display:flex;gap:6px;margin-top:4px}
+.iconbtn{min-height:30px;padding:3px 9px;font-size:12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+.iconbtn:hover{color:var(--ink)}
+.teamform{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:12px;align-items:end;border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:900px){.teamform{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:520px){.teamform{grid-template-columns:minmax(0,1fr)}}
+#gd-text{min-height:460px;font-family:var(--mono);font-size:13px;line-height:1.6}
+footer{border-top:1px solid var(--line);padding-block:24px;color:var(--muted);font-size:13px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:900px){
+  .hero .wrap,.grid2,.cols2{grid-template-columns:minmax(0,1fr)}
+  .result{grid-template-columns:minmax(0,1fr)}
+  .rules div{grid-template-columns:minmax(0,1fr);gap:2px}
+  .nav{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+.embed{width:100%;height:640px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.glance .qbtn{align-self:flex-start}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="T-REX Trial Hub, top">
+      <svg width="40" height="40" viewBox="0 0 200 200" aria-hidden="true"><defs><clipPath id="lgc"><circle cx="100" cy="100" r="89"/></clipPath></defs><circle cx="100" cy="100" r="98" fill="#0E5E5A"/><g clip-path="url(#lgc)"><rect width="200" height="200" fill="#F7CFC7"/><g fill="none" stroke="#F0BBB1" stroke-width="8"><ellipse cx="157" cy="52" rx="30" ry="22"/><ellipse cx="157" cy="52" rx="58" ry="42"/><ellipse cx="157" cy="52" rx="92" ry="66"/></g><circle cx="157" cy="52" r="20" fill="#FFFFFF" opacity=".5"/><circle cx="157" cy="52" r="12" fill="#FFFFFF"/><path d="M0 171 Q40 163 80 170 T160 169 T240 167 V210 H0 Z" fill="#E8AA9F"/><g transform="translate(8 52) scale(0.7)"><path fill="#0A4542" d="M84 146 C86 156 88 164 92 168 C94 172 90 172 86 172 L74 172 C70 172 70 168 74 166 C74 158 72 152 70 146 Z"/><path fill="#0E5E5A" d="M8 152 C30 140 52 120 74 106 C86 98 96 92 100 80 C102 66 106 54 116 46 C126 38 140 30 156 22 C164 18 172 22 170 30 C168 36 158 40 146 44 L134 50 L154 46 C160 46 160 54 152 57 C142 62 130 68 126 80 C122 90 124 100 128 108 C132 118 128 130 120 136 C122 146 126 158 132 166 C134 170 132 172 126 172 L108 172 C104 172 104 168 108 164 C104 156 100 150 92 148 C80 148 66 146 52 146 C36 148 20 154 8 152 Z"/><circle cx="133" cy="41" r="3.8" fill="#FFFFFF"/></g></g></svg>
+      <div><b>T-REX</b><br><span>Trial hub</span></div>
+    </a>
+    <nav class="nav" aria-label="Hub sections" role="tablist">
+      <a href="#overview" id="tab-overview" role="tab" aria-controls="overview">Overview</a>
+      <a href="#visits" id="tab-visits" role="tab" aria-controls="visits">Follow-up</a>
+      <a href="#instructions" id="tab-instructions" role="tab" aria-controls="instructions">Instructions</a>
+      <a href="#contacts" id="tab-contacts" role="tab" aria-controls="contacts">Team &amp; links</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero" id="top">
+  <svg class="rings" viewBox="0 0 760 560" aria-hidden="true">
+    <g fill="none" stroke="#0A4542" stroke-width="26"><ellipse cx="480" cy="230" rx="90" ry="66"/><ellipse cx="480" cy="230" rx="190" ry="140"/><ellipse cx="480" cy="230" rx="310" ry="228"/><ellipse cx="480" cy="230" rx="450" ry="330"/></g>
+    <circle cx="480" cy="230" r="58" fill="#FFFFFF" opacity=".12"/><circle cx="480" cy="230" r="30" fill="#FFFFFF" opacity=".9"/>
+  </svg>
+  <div class="wrap">
+    <div>
+      <h1>Active surveillance vs adjuvant chemoradiotherapy after local excision of intermediate-risk pT1 rectal cancer</h1>
+      <p>The working space for investigators, coordinators and data staff: follow-up and site calendars, coordinator instructions, the CRF map, the team and key links in one place.</p>
+      <div class="quick" id="quicklinks"></div>
+    </div>
+    <div class="glance">
+      <div class="eyebrow">Recruitment</div>
+      <div class="big num"><span id="g-rand">–</span> <small>/ 480 randomised</small></div>
+      <div class="meter" role="progressbar" aria-label="Recruitment progress" aria-valuemin="0" aria-valuemax="480" id="g-meter" aria-valuenow="0"><i id="g-bar"></i></div>
+      <div class="gstats">
+        <div><strong class="num" id="g-sites">–</strong>sites recruiting</div>
+        <div><strong class="num">240</strong>per arm (1:1)</div>
+        <div><strong class="num">5 yrs</strong>follow-up</div>
+      </div>
+      <div class="gsplit" id="g-split"></div>
+      <div style="font-size:12px;color:var(--hero-soft)" id="g-note"></div>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+<div class="panel" id="overview" role="tabpanel" aria-labelledby="tab-overview">
+
+  <section class="card" id="updates">
+      <div class="shead">
+        <div><h2>Updates</h2><p>Announcements from the coordinating team: amendments, newsletters, meeting dates.</p></div>
+      </div>
+      <div class="updates" id="upd-list"></div>
+    </section>
+
+
+  <section class="card" id="sites">
+    <div class="shead">
+      <div><h2>Sites</h2><p>Set-up status of each participating centre.</p></div>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Site</th><th>Country</th><th>Lead investigator</th><th>Status</th><th>Randomised</th><th>AS · CRT</th></tr></thead>
+        <tbody id="sites-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+<div class="panel" id="visits" role="tabpanel" aria-labelledby="tab-visits" hidden>
+  <section class="card" id="followup">
+    <div class="shead">
+      <div><h2>Follow-up</h2><p>Every randomised participant with their next follow-up date, from the Airtable "Patients" table, refreshed automatically every hour. Sorted by the nearest visit.</p></div>
+      <div class="row" style="gap:8px">
+        <span class="pill p-ok" id="fu-state">–</span>
+      </div>
+    </div>
+    <div class="fuchips" id="fu-chips"></div>
+    <div class="row">
+      <div class="field"><label for="fu-site">Site</label><select id="fu-site"><option value="">All sites</option></select></div>
+      <div class="field"><label for="fu-arm">Arm</label><select id="fu-arm"><option value="">Both arms</option><option value="AS">Active surveillance</option><option value="CRT">Adjuvant CRT</option></select></div>
+      <div class="field"><label for="fu-q">Find PID</label><input id="fu-q" type="text" inputmode="numeric" placeholder="e.g. 12"></div>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>PID</th><th>Site</th><th>Arm</th><th>Randomised</th><th>Status</th><th>Next follow-up</th><th>In</th></tr></thead>
+        <tbody id="fu-body"></tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin:0" id="fu-foot">Record completed visits in Airtable (M… FUP date fields); the page refreshes every 5 minutes.</p>
+  </section>
+
+  <section class="card" id="calendars">
+    <div class="shead">
+      <div><h2>Site calendars</h2><p>Follow-up visits per active site, from Airtable. A site is active when it is recruiting or already has randomised participants.</p></div>
+      <div class="calnav">
+        <button class="btn ghost small" type="button" id="cal-prev" aria-label="Previous month">‹</button>
+        <strong class="num" id="cal-title">–</strong>
+        <button class="btn ghost small" type="button" id="cal-next" aria-label="Next month">›</button>
+        <button class="btn ghost small" type="button" id="cal-today">Today</button>
+      </div>
+    </div>
+    <div class="tabs" id="cal-tabs" role="group" aria-label="Choose site"></div>
+    <div class="legend">
+      <span><i class="ev est"></i>Estimated from randomisation date</span>
+      <span><i class="ev booked"></i>Date entered in Airtable</span>
+      <span><i class="ev done"></i>Past entered date</span>
+      <span><i class="dot as"></i>Surveillance</span><span><i class="dot crt"></i>CRT</span>
+    </div>
+    <div class="calbox">
+      <div class="calgrid" id="cal-grid" aria-label="Month calendar"></div>
+    </div>
+    <div class="agenda" id="cal-agenda"></div>
+  </section>
+
+  <section class="card" id="schedule">
+    <div class="shead">
+      <div><h2>What happens at each visit</h2><p>Assessments per follow-up visit, from the protocol schedule. Hover over or tap a visit in the list or calendar above to see the same detail for one participant.</p></div>
+      <div class="tabs" role="group" aria-label="Choose arm" id="sch-switch">
+        <button type="button" data-arm="AS" aria-pressed="true">Active surveillance</button>
+        <button type="button" data-arm="CRT" aria-pressed="false">Chemoradiotherapy</button>
+      </div>
+    </div>
+    <div class="tablebox"><table class="sched" id="sch-table" aria-label="Visit schedule"></table></div>
+    <p class="hint" style="margin:0">The post-CRT visit is one month after the last RT fraction. Colonoscopy is timed from local excision (12 months), then after 3 years, or after 1 year if an advanced adenoma is found. Windows: ±2 weeks up to month 9, ±1 month from month 12.</p>
+  </section>
+</div>
+<div class="panel" id="instructions" role="tabpanel" aria-labelledby="tab-instructions" hidden>
+  <section class="card" id="guide-card">
+    <div class="shead">
+      <div><div class="eyebrow">Instructions for site coordinators</div><h2 id="gd-title">Instructions</h2><p id="gd-meta">Step-by-step instructions maintained by the coordinating team.</p></div>
+      <div class="row" style="gap:8px">
+        <div class="tabs" role="group" aria-label="Choose guide" id="gd-switch">
+          <button type="button" data-g="randomisation" aria-pressed="true">Randomisation</button>
+          <button type="button" data-g="crf" aria-pressed="false">Ledidi (eCRF)</button>
+        </div>
+      </div>
+    </div>
+    <div class="actionbar" id="gd-act-rand">
+      <div><strong>Ready to randomise?</strong><span>Complete the Airtable form once eligibility and consent are confirmed. The arm is assigned when you submit.</span></div>
+      <a class="btn big" id="gd-form-link" href="https://airtable.com/appUIdFlPDYSWeJ2A/pagplCLBh8XuL5Q4q/form" target="_blank" rel="noopener">Open randomisation form ↗</a>
+    </div>
+    <div class="actionbar" id="gd-act-crf" hidden>
+      <div><strong>Data entry in Ledidi</strong><span>Sign in with your personal Ledidi account. Use the map below to pick the right form.</span></div>
+      <a class="btn big" id="gd-ledidi-link" href="https://app.ledidi.no/projects/30708/dataset" target="_blank" rel="noopener">Open Ledidi ↗</a>
+    </div>
+    <figure class="flow" id="gd-flow" hidden aria-labelledby="flow-cap">
+      <figcaption id="flow-cap"><strong>CRF map</strong> Which Ledidi form to open, and when.</figcaption>
+      <div class="flowlegend">
+        <span><i class="k pre"></i>Pre-inclusion, every patient</span>
+        <span><i class="k as"></i>Active surveillance arm</span>
+        <span><i class="k crt"></i>Chemoradiotherapy arm</span>
+        <span><i class="k fu"></i>Scheduled follow-up, both arms</span>
+        <span><i class="k ev"></i>Event-driven, only if it happens</span>
+        <span><i class="k end"></i>Allocation and study end</span>
+      </div>
+      <div class="fbox end wide">Allocation <span>randomisation form in Airtable · PID and arm assigned</span></div>
+      <div class="farrow" aria-hidden="true"></div>
+      <ol class="fstage pre-row" aria-label="Pre-inclusion forms in Ledidi">
+        <li class="fbox pre"><b>CRF 1*</b>Screening form</li>
+        <li class="fbox pre"><b>CRF 2*</b>Eligibility criteria</li>
+        <li class="fbox pre"><b>CRF 3</b>Baseline <span>incl. baseline quality of life: EORTC QLQ-C30 + CR29 (CRF 7.2, 7.3)</span></li>
+        <li class="fbox pre"><b>CRF 4</b>Pre-treatment assessment</li>
+        <li class="fbox pre"><b>CRF 5</b>Local excision</li>
+      </ol>
+      <p class="fnote">* Complete also for patients who were screened but not randomised.</p>
+      <div class="farrow" aria-hidden="true"></div>
+      <div class="fsplit">
+        <div class="fcol">
+          <div class="farrow" aria-hidden="true"></div>
+          <div class="armlabel as">Active surveillance arm</div>
+          <div class="fbox as ghost">No arm-specific form. Go straight to scheduled follow-up.</div>
+        </div>
+        <div class="fcol">
+          <div class="farrow" aria-hidden="true"></div>
+          <div class="armlabel crt">Chemoradiotherapy arm</div>
+          <div class="fpair">
+            <div class="fbox crt"><b>CRF 6.1</b>Chemoradiation</div>
+            <div class="fbox crt"><b>CRF 6.2</b>CRT toxicity <span>series · one row per AE</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="farrow" aria-hidden="true"></div>
+      <div class="fgroup fu">
+        <div class="ghead">Scheduled follow-up: complete at every study visit, both arms (the calendar differs by arm)</div>
+        <div class="fgrid4">
+          <div class="fbox fu"><b>CRF 7.1</b>Follow-up <span>series · physical exam, CEA, endoscopy, MRI/CT · one row per visit</span></div>
+          <div class="fbox fu"><b>CRF 7.2 + 7.3</b>EORTC QLQ-C30 and CR29 <span>series · patient-completed · baseline, M12, M36, M60</span></div>
+          <div class="fbox fu"><b>CRF 7.4</b>LARS <span>series · M12, M24, M36, M48, M60 · score &gt; 30 flags CRF 10</span></div>
+          <div class="fbox ev"><b>CRF 10</b>Outcome assessment <span>update on any outcome event and at the 3-year endpoint</span></div>
+        </div>
+      </div>
+      <div class="farrow" aria-hidden="true"></div>
+      <div class="fgroup ev">
+        <div class="ghead">If it happens during follow-up, open the matching event form</div>
+        <div class="fgrid4">
+          <div class="fbox ev"><b>CRF 8</b>Disease progression <span>series · local recurrence or distant metastases confirmed</span></div>
+          <div class="fbox ev"><b>CRF 6.2</b>CRT toxicity <span>series · reopen whenever a new AE occurs</span></div>
+          <div class="fbox ev"><b>CRF 9.1</b>Surgery <span>series · any surgery for rectal cancer or its complications</span></div>
+          <div class="fbox ev"><b>CRF 9.2</b>Surgical AEs <span>series · one row per complication, Clavien–Dindo grade</span></div>
+        </div>
+        <p class="fnote">Any of these events also updates <b>CRF 10</b> (Outcome assessment).</p>
+      </div>
+      <div class="farrow" aria-hidden="true"></div>
+      <div class="fbox end wide"><b>CRF 11</b>Study completion <span>complete once: withdrawal, death or lost to follow-up</span></div>
+    </figure>
+    <nav class="toc" id="gd-toc" aria-label="On this guide"></nav>
+    <div class="guide" id="gd-body"><div class="empty">The guide loads from the hub's shared store. Editors can write it with "Edit guide".</div></div>
+  </section>
+</div>
+<div class="panel" id="contacts" role="tabpanel" aria-labelledby="tab-contacts" hidden>
+  <section class="card" id="team">
+    <div class="shead">
+      <div><h2>Team &amp; links</h2><p>Who to contact, and where the trial's systems live. Sorted by surname.</p></div>
+    </div>
+    <div class="teamlist" id="team-list"></div>
+    <h3 style="margin-top:8px">Systems and documents</h3>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Resource</th><th>Link</th></tr></thead>
+        <tbody id="links-body"></tbody>
+      </table>
+    </div>
+    
+  </section>
+</div>
+
+</main>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<footer>
+  <div class="wrap">
+    <div>T-REX · ECOPOP · Funded by the European Union, Horizon Europe GA 101156165 · Content updated <span id="f-upd"></span></div>
+    <div>Study Secretariat: Medical University of Gdańsk · Data Management Centre: University of Oslo</div>
+  </div>
+</footer>
+
+<script>__CONTENT__</script>
+<script>__AIRTABLE__</script>
+<script>__APP__</script>
+</body>
+</html>
