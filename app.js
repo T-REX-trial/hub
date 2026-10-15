@@ -84,13 +84,23 @@
     if (!L[k]) return;
     const a=document.createElement('a'); a.className='qbtn'; a.href=L[k]; a.target='_blank'; a.rel='noopener'; a.textContent=t+' ↗'; q.append(a);
   });
-  const lb = $('links-body');
-  LINKS.forEach(x=>{
-    const tr=document.createElement('tr'); const a=document.createElement('td'); a.textContent=x.label; a.style.fontWeight='600';
-    const b=document.createElement('td');
-    if (L[x.k]){ const l=document.createElement('a'); l.href=L[x.k]; l.target='_blank'; l.rel='noopener'; l.textContent='Open ↗'; b.append(l); }
-    else { const h=document.createElement('span'); h.className='hint'; h.textContent='Not set yet'; b.append(h); }
-    tr.append(a,b); lb.append(tr);
+  const LGROUPS = [
+    ['Daily work', [['edc','Ledidi eCRF','personal account'],['form','Randomisation form','Airtable'],['airtable','Airtable base','follow-up data']]],
+    ['Documents', [['protocol','Protocol','v1.1 and amendments'],['drive','T-REX shared folder','OneDrive'],['isf','Investigator Site File','templates']]],
+    ['Identity', [['brand','Logo and slide templates','T-REX visual identity']]]
+  ];
+  const lg = $('link-groups');
+  LGROUPS.forEach(([title, items])=>{
+    const box=document.createElement('div'); box.className='lgroup';
+    const h=document.createElement('h3'); h.textContent=title; box.append(h);
+    items.forEach(([k,label,sub])=>{
+      const el=document.createElement('a'); el.className='lnk'+(L[k]?'':' off');
+      if (L[k]){ el.href=L[k]; el.target='_blank'; el.rel='noopener'; } else { el.setAttribute('aria-disabled','true'); }
+      const t1=document.createElement('div'); t1.textContent=label; const s=document.createElement('span'); s.textContent = L[k] ? sub : 'link coming soon'; t1.append(document.createElement('br'), s);
+      const ar=document.createElement('b'); ar.textContent = L[k] ? '↗' : '';
+      el.append(t1, ar); box.append(el);
+    });
+    lg.append(box);
   });
 
   /* ---------- Updates ---------- */
@@ -123,19 +133,48 @@
   }
 
   /* ---------- Team ---------- */
-  const tl = $('team-list');
-  (D.team||[]).slice().sort((a,b)=> String(a.last).localeCompare(String(b.last),'en',{sensitivity:'base'})).forEach(r=>{
-    const m=document.createElement('div'); m.className='member';
-    const role=document.createElement('div'); role.className='role'; role.textContent=r.role||'';
-    const name=document.createElement('div'); name.className='name'; name.textContent=[r.first,r.last].filter(Boolean).join(' ');
-    m.append(role,name);
-    if (r.email){
-      const mail=document.createElement('div'); mail.className='mail';
-      const a=document.createElement('a'); a.href='mailto:'+r.email; a.textContent=r.email; a.style.overflow='hidden'; a.style.textOverflow='ellipsis';
-      mail.append(a); m.append(mail);
-    }
-    tl.append(m);
+  const RTYPES = { lead:['Trial leadership','r-lead','e-lead'], inv:['Investigator','r-inv','e-inv'], coord:['Coordinator / study staff','r-coord','e-coord'], data:['Data & statistics','r-data','e-data'], pm:['Project management','r-pm','e-pm'] };
+  const leg = $('role-legend');
+  Object.values(RTYPES).forEach(([lbl,cls])=>{ const c=document.createElement('span'); c.className='rchip '+cls; c.textContent=lbl; leg.append(c); });
+  function person(r, compact){
+    const t = RTYPES[r.type] || RTYPES.inv;
+    const p=document.createElement('div'); p.className='person2 '+t[2];
+    const nm=document.createElement('div'); nm.className='nm'; nm.textContent=[r.first,r.last].filter(Boolean).join(' ');
+    const rl=document.createElement('div'); rl.className='rl';
+    const chip=document.createElement('span'); chip.className='rchip '+t[1]; chip.textContent=r.role||t[0]; rl.append(chip);
+    if (!compact && r.site){ const s=document.createElement('span'); s.textContent=r.site; rl.append(s); }
+    p.append(nm, rl);
+    if (r.email){ const a=document.createElement('a'); a.href='mailto:'+r.email; a.textContent=r.email; p.append(a); }
+    return p;
+  }
+  const byLast = (x,y)=> String(x.last).localeCompare(String(y.last),'en',{sensitivity:'base'});
+  const TEAM = (D.team||[]).slice();
+  const tg = $('team-groups');
+  function group(title, sub, node){ const g=document.createElement('div'); g.className='tgroup'; const h=document.createElement('h3'); h.textContent=title; if (sub){ const s=document.createElement('small'); s.textContent=sub; h.append(s); } g.append(h, node); tg.append(g); }
+  // leadership
+  const leadGrid=document.createElement('div'); leadGrid.className='pgrid';
+  const ORDER = { 'Principal investigator':0, 'Co-principal investigator':1, 'Study coordinator':2 };
+  TEAM.filter(r=>r.type==='lead').sort((x,y)=>(ORDER[x.role]??9)-(ORDER[y.role]??9) || byLast(x,y)).forEach(r=>leadGrid.append(person(r)));
+  group('Trial leadership', 'principal investigators and the coordinating team', leadGrid);
+  // sites
+  const siteGrid=document.createElement('div'); siteGrid.className='sitegrid';
+  const sitesMap = {};
+  TEAM.filter(r=>r.type==='inv'||r.type==='coord').forEach(r=>{ (sitesMap[r.site||'Other'] ||= []).push(r); });
+  const RANK = { inv:0, coord:1 };
+  Object.keys(sitesMap).sort().forEach(site=>{
+    const c=document.createElement('div'); c.className='sitecard';
+    const hd=document.createElement('header'); const b=document.createElement('b'); b.textContent=site; const sp=document.createElement('span');
+    const nrm=(v)=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); const ctry = (D.sites||[]).find(s=>nrm(s.name)===nrm(site.split(' (')[0])); sp.textContent = ctry ? ctry.country : (sitesMap[site][0].country||'');
+    hd.append(b, sp); c.append(hd);
+    const RO={'Site PI':0,'Local co-PI':1,'Investigator':2}; sitesMap[site].sort((x,y)=> (RANK[x.type]-RANK[y.type]) || ((RO[x.role]??5)-(RO[y.role]??5)) || byLast(x,y)).forEach(r=>c.append(person(r,true)));
+    siteGrid.append(c);
   });
+  group('Site teams', 'investigators and coordinators per centre', siteGrid);
+  // data + project management
+  const dGrid=document.createElement('div'); dGrid.className='pgrid'; TEAM.filter(r=>r.type==='data').sort(byLast).forEach(r=>dGrid.append(person(r)));
+  if (dGrid.children.length) group('Data & statistics', '', dGrid);
+  const pGrid=document.createElement('div'); pGrid.className='pgrid'; TEAM.filter(r=>r.type==='pm').sort(byLast).forEach(r=>pGrid.append(person(r)));
+  if (pGrid.children.length) group('ECOPOP project management', 'Horizon Europe consortium', pGrid);
 
   /* ---------- Airtable (live, viewer's own credentials) ---------- */
   const F = { pid:'fld5OnRlgnKUqfwN1', country:'fldwVIZA2itGyhKg4', site:'fldTUz1LqLHkNsD6q', arm:'fldzcs7s9CLfqGvB4', alo:'fldlPS6TtS0ajk6DD', rand:'fldnSvyeUHJyqfMAu', status:'fldLwysBskRTGZiT8', next:'fldwhNE4xhS5oZlcK' };
