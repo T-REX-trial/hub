@@ -42,6 +42,7 @@
       const line = raw.replace(/\s+$/,'');
       let m;
       if (!line.trim()){ close(); return; }
+      if ((m = /^!\[([^\]]*)\]\((data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+\/=]+|https:\/\/[^)\s]+)\)$/.exec(line))){ close(); const fg=document.createElement('figure'); fg.className='gimg'; const im=document.createElement('img'); im.src=m[2]; im.alt=m[1]; im.loading='lazy'; fg.append(im); if (m[1]){ const fc=document.createElement('figcaption'); fc.textContent=m[1]; fg.append(fc); } body.append(fg); return; }
       if ((m = /^##\s+(.*)$/.exec(line))){ close(); const h=document.createElement('h3'); h.id='gd-h'+(++hn); inline(m[1], h); body.append(h); const a=document.createElement('a'); a.href='#'+h.id; a.textContent=h.textContent; a.addEventListener('click',(e)=>{ e.preventDefault(); h.scrollIntoView({behavior:'smooth',block:'start'}); }); toc.append(a); return; }
       if ((m = /^###\s+(.*)$/.exec(line))){ close(); body.append(inline(m[1], document.createElement('h4'))); return; }
       if ((m = /^\d+[.)]\s+(.*)$/.exec(line))){ if (listType!=='ol'){ list=document.createElement('ol'); listType='ol'; body.append(list); } const li=document.createElement('li'); li.append(inline(m[1], document.createElement('span'))); list.append(li); return; }
@@ -85,7 +86,7 @@
     const a=document.createElement('a'); a.className='qbtn'; a.href=L[k]; a.target='_blank'; a.rel='noopener'; a.textContent=t+' ↗'; q.append(a);
   });
   const LGROUPS = [
-    ['Daily work', [['edc','Ledidi eCRF','personal account'],['form','Randomisation form','Airtable'],['airtable','Airtable base','follow-up data']]],
+    ['Daily work', [['edc','Ledidi eCRF','personal account'],['form','Randomisation form','Airtable']]],
     ['Documents', [['protocol','Protocol','v1.1 and amendments'],['drive','T-REX shared folder','OneDrive'],['isf','Investigator Site File','templates']]],
     ['Identity', [['brand','Logo and slide templates','T-REX visual identity']]]
   ];
@@ -305,7 +306,7 @@
     const in30 = AT.rows.filter(r=>r.next && days(r.next)>=0 && days(r.next)<=30).length;
     const ch = $('fu-chips'); ch.innerHTML='';
     [[AT.rows.length,'participants'],[in14,'visits in the next 14 days'],[in30,'in the next 30 days']].forEach(([n,t])=>{ const d=document.createElement('div'); const s=document.createElement('strong'); s.className='num'; s.textContent=n; d.append(s, document.createTextNode(t)); ch.append(d); });
-    if (!rows.length){ body.innerHTML='<tr><td colspan="7" class="hint">No participants match these filters.</td></tr>'; return; }
+    if (!rows.length){ body.innerHTML='<tr><td colspan="8" class="hint">No participants match these filters.</td></tr>'; return; }
     rows.forEach(r=>{
       const tr=document.createElement('tr');
       const dd = r.next ? days(r.next) : null;
@@ -318,6 +319,13 @@
       add(r.status || '–');
       if (r.next){ const nv = nextVisit(r); const w=document.createElement('span'); w.style.cssText='display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap'; w.append(document.createTextNode(fmt(r.next))); if (nv){ const b=document.createElement('button'); b.type='button'; b.className='vbtn'; b.textContent='M'+nv.m; b.setAttribute('aria-label','Month '+nv.m+' visit: show assessments'); attachTip(b, r, nv); w.append(b); } add(w,'num'); } else add('–','num');
       add(dd===null ? '–' : dd<0 ? Math.abs(dd)+' d ago' : dd===0 ? 'today' : dd+' d', 'num');
+      const nv2 = r.next ? nextVisit(r) : null;
+      const comp=document.createElement('div'); comp.className='comp';
+      const list = nv2 ? ((SCHED[r.arm]||{})[nv2.m] || null) : null;
+      if (list){ list.forEach(k=>{ const it=ITEMS.find(x=>x[0]===k); const s=document.createElement('span'); s.textContent=SHORT[k]||it[1]; if (['colo','mri','pct','ct','lars','qol','tox'].includes(k)) s.className='k'; comp.append(s); }); }
+      else comp.textContent = nv2 ? 'Not in protocol schedule' : '–';
+      add(comp);
+      if (nv2){ attachTip(tr, r, nv2); tr.tabIndex = 0; }
       body.append(tr);
     });
   }
@@ -332,6 +340,7 @@
     AS: { 3:B3, 6:B6, 9:B3, 12:['exam','cea','colo','mri','ct','lars','qol'], 15:B3, 18:B6, 21:B3, 24:['exam','cea','recto','mri','ct','lars'], 30:B6, 36:['exam','cea','recto','mri','ct','lars','qol'], 42:B6, 48:['exam','cea','colo','mri','ct','lars'], 54:B6, 60:['exam','cea','recto','mri','ct','lars','qol'] },
     CRT:{ post:['exam','labs','cea','recto','mri','tox'], 3:['tox'], 6:B6, 12:['exam','cea','colo','mri','ct','lars','qol'], 18:B6, 24:['exam','cea','recto','mri','ct','lars'], 30:B6, 36:['exam','cea','recto','mri','ct','lars','qol','tox'], 42:['exam','cea','recto','pct'], 48:['exam','cea','colo','pct','ct','lars'], 54:['exam','cea','recto','pct'], 60:['exam','cea','recto','pct','ct','lars','qol'] }
   };
+  const SHORT = { exam:'Exam', cea:'CEA', labs:'Labs', recto:'Rectoscopy', colo:'Colonoscopy', mri:'Pelvic MRI', pct:'Pelvic CT', ct:'CT thorax/abd.', lars:'LARS', qol:'QoL', tox:'CRT toxicity' };
   let schArm = 'AS';
   function renderSchedule(){
     document.querySelectorAll('#sch-switch button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.arm===schArm)));
@@ -363,6 +372,7 @@
   }
   const tip = $('tip'); let tipFor = null;
   function showTip(el, r, v){
+    tipArgs=[el,r,v];
     const arm = r.arm || '';
     const list = (SCHED[arm]||{})[v.m];
     tip.textContent='';
@@ -393,7 +403,8 @@
   }
   document.addEventListener('click', hideTip);
   document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') hideTip(); });
-  window.addEventListener('scroll', hideTip, {passive:true});
+  let tipArgs=null;
+  window.addEventListener('scroll', ()=>{ if (!tip.hidden && tipArgs && tipFor && tipFor.isConnected) showTip(...tipArgs); }, {passive:true});
 
   ['fu-site','fu-arm'].forEach(id=>$(id).addEventListener('change', renderFollowUp));
   $('fu-q').addEventListener('input', renderFollowUp);
