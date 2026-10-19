@@ -1,12 +1,15 @@
-/* T-REX Trial Hub — page logic. Content lives in data.js. */
-(function(){
+/* T-REX Trial Hub — page logic. Runs after sign-in with the decrypted package for one country (or all). */
+window.TREX_START = function(PKG){
   const $ = (id) => document.getElementById(id);
   const fmt = (d) => d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  const D = window.TREX || {};
+  const D = PKG.content || {};
   const L = D.links || {};
+  const WHO = PKG.who || 'all';
+  const ALLV = WHO === 'all';
+  $('who-name').textContent = ALLV ? 'All countries' : WHO;
 
   /* ---------- Tabs ---------- */
-  const PANELS = ['overview','visits','instructions','contacts'];
+  const PANELS = ['overview','visits','instructions','documents','contacts'];
   function showTab(id, focus){
     if (!PANELS.includes(id)) id = 'overview';
     PANELS.forEach(p=>{ $(p).hidden = p!==id; const t=$('tab-'+p); t.setAttribute('aria-selected', String(p===id)); t.tabIndex = p===id ? 0 : -1; });
@@ -14,7 +17,7 @@
     if (focus) window.scrollTo({top:0});
   }
   PANELS.forEach(p=> $('tab-'+p).addEventListener('click', (e)=>{ e.preventDefault(); showTab(p, true); try{ history.replaceState(null,'','#'+p); }catch(_){} }));
-  const ALIAS = { coordinators:'instructions', followup:'visits', calendars:'visits', team:'contacts' };
+  const ALIAS = { coordinators:'instructions', followup:'visits', calendars:'visits', team:'contacts', docs:'documents' };
   window.addEventListener('hashchange', ()=>{ let h=location.hash.slice(1); h = ALIAS[h] || h; if (PANELS.includes(h)) showTab(h); });
   (function(){ let h = location.hash.slice(1); h = ALIAS[h] || h; if (!PANELS.includes(h)) { try { h = localStorage.getItem('trex-tab') || 'overview'; } catch(_){ h='overview'; } } showTab(h); })();
 
@@ -117,7 +120,8 @@
 
   /* ---------- Sites (status from content, counts from Airtable) ---------- */
   const statusPill = (s)=> s==='Recruiting'?'p-ok' : (s==='Closed'||s==='To confirm'||!s)?'p-neutral' : 'p-warn';
-  let siteDocs = (D.sites||[]).map(x=>({ id:x.name, data:()=>x }));
+  const ALLSITES = (D.sites||[]).map(x=>({ id:x.name, data:()=>x }));
+  let siteDocs = ALLV ? ALLSITES : ALLSITES.filter(d=>d.data().country===WHO);
   function renderSites(){
     const sb = $('sites-body'); sb.textContent='';
     siteDocs.forEach(d=>{
@@ -129,7 +133,8 @@
       const ac=document.createElement('td'); ac.className='num'; ac.textContent = cnt ? cnt.as+' · '+cnt.crt : '0 · 0'; tr.append(ac);
       sb.append(tr);
     });
-    $('g-sites').textContent = siteDocs.filter(d=>d.data().status==='Recruiting').length;
+    $('g-sites').textContent = ALLSITES.filter(d=>d.data().status==='Recruiting').length;
+    renderRecruited();
     renderMap();
     if (typeof renderCalendar==='function' && typeof cal!=='undefined') renderCalendar();
   }
@@ -140,7 +145,7 @@
     const NS='http://www.w3.org/2000/svg'; g.textContent='';
     const xy = (lon,lat)=>{ const l=lon*Math.PI/180, f=lat*Math.PI/180; return [P.scale*l + P.translate[0], -P.scale*Math.log(Math.tan(Math.PI/4+f/2)) + P.translate[1]]; };
     const LEFT = new Set(['Ghent','Limoges','Barcelona','Basel']);
-    siteDocs.map(d=>d.data()).filter(s=>typeof s.lat==='number').sort((a,b)=> (a.status==='Recruiting') - (b.status==='Recruiting')).forEach(s=>{
+    ALLSITES.map(d=>d.data()).filter(s=>typeof s.lat==='number').sort((a,b)=> (a.status==='Recruiting') - (b.status==='Recruiting')).forEach(s=>{
       const [x,y]=xy(s.lon,s.lat); const on = s.status==='Recruiting';
       const cnt = (typeof AT!=='undefined' && AT.bySite && AT.bySite[norm(s.name)]) ? AT.bySite[norm(s.name)].n : 0;
       const grp=document.createElementNS(NS,'g'); grp.setAttribute('class','site'); grp.setAttribute('tabindex','0');
@@ -223,15 +228,17 @@
     AT.rows = records.map(r=>{
       const c = r.cellValuesByFieldId || r.fields || {};
       const randIso = cellText(c[F.rand]) || r.createdTime || '';
-      return { pid: cellText(c[F.pid]), site: cellText(c[F.site]), country: cellText(c[F.country]), arm: armOf(c),
+      return { pid: cellText(c[F.pid]), site: cellText(c[F.site]), country: r.country || cellText(c[F.country]), arm: armOf(c),
         rand: randIso ? new Date(randIso) : null, status: cellText(c[F.status]), next: parseDMY(cellText(c[F.next])),
         visits: MV.map(([m,est,act])=>{ const a = parseDMY(cellText(c[act])); const e = parseDMY(cellText(c[est])); const d = a || e; return d ? {m, date:d, kind: a ? (a < startOfToday() ? 'done' : 'booked') : 'est'} : null; }).filter(Boolean) };
     });
     AT.bySite = {};
-    let as=0, crt=0;
-    AT.rows.forEach(r=>{ const k=norm(r.site); const b = AT.bySite[k] || (AT.bySite[k]={n:0,as:0,crt:0}); b.n++; if(r.arm==='AS'){b.as++;as++;} if(r.arm==='CRT'){b.crt++;crt++;} });
+    let as=0, crt=0, total=0;
+    const TOT = (PKG.at && PKG.at.totals) || null;
+    if (TOT){ Object.entries(TOT).forEach(([k,b])=>{ AT.bySite[k]=b; total+=b.n; as+=b.as; crt+=b.crt; }); }
+    else { AT.rows.forEach(r=>{ const k=norm(r.site); const b = AT.bySite[k] || (AT.bySite[k]={n:0,as:0,crt:0}); b.n++; total++; if(r.arm==='AS'){b.as++;as++;} if(r.arm==='CRT'){b.crt++;crt++;} }); }
     AT.loaded = true;
-    const total = AT.rows.length;
+    if (!ALLV){ const m=$('g-mine'); m.hidden=false; m.textContent = WHO + ': ' + AT.rows.length + ' randomised (' + AT.rows.filter(r=>r.arm==='AS').length + ' surveillance · ' + AT.rows.filter(r=>r.arm==='CRT').length + ' CRT)'; }
     $('g-rand').textContent = total;
     $('g-bar').style.width = Math.min(100, total/480*100) + '%'; $('g-meter').setAttribute('aria-valuenow', total);
     const sp = $('g-split'); sp.innerHTML='';
@@ -409,8 +416,111 @@
   ['fu-site','fu-arm'].forEach(id=>$(id).addEventListener('change', renderFollowUp));
   $('fu-q').addEventListener('input', renderFollowUp);
 
+  /* ---------- Recruited participants per site ---------- */
+  function renderRecruited(){
+    const grid = $('rc-grid'); if (!grid) return; grid.textContent='';
+    $('rc-title').textContent = ALLV ? 'Recruited participants' : 'Recruited participants · ' + WHO;
+    $('rc-sub').textContent = (ALLV ? 'Every randomised participant per site, all countries.' : 'Every randomised participant at the ' + WHO + ' sites. Other countries\' participants are not shown with this password.') + ' From Airtable, refreshed every hour.';
+    const bySite = new Map();
+    siteDocs.forEach(d=>{ const s=d.data(); if (!ALLV || s.status==='Recruiting') bySite.set(norm(s.name), {name:s.name, country:s.country, status:s.status, rows:[]}); });
+    AT.rows.forEach(r=>{ const k=norm(r.site)||'unknown'; if (!bySite.has(k)) bySite.set(k, {name:r.site||'Site not set', country:r.country, status:'', rows:[]}); bySite.get(k).rows.push(r); });
+    const list = [...bySite.values()].sort((a,b)=> String(a.country).localeCompare(String(b.country)) || (b.rows.length-a.rows.length) || a.name.localeCompare(b.name));
+    if (!list.length){ grid.innerHTML='<div class="empty" style="grid-column:1/-1">No participants randomised yet.</div>'; return; }
+    let lastC = null;
+    list.forEach(s=>{
+      if (ALLV && s.country!==lastC){ lastC=s.country; const h=document.createElement('div'); h.className='ctryh'; h.textContent=s.country||'Country not set'; grid.append(h); }
+      const card=document.createElement('article'); card.className='rsite';
+      const hd=document.createElement('header'); const l=document.createElement('div'); const b=document.createElement('b'); b.textContent=s.name; const sm=document.createElement('small'); sm.textContent=(s.country||'')+(s.status?' · '+s.status:''); l.append(b,sm);
+      const n=document.createElement('div'); n.className='rcount num'; n.textContent=s.rows.length; const ns=document.createElement('small'); ns.textContent='randomised'; n.append(ns); hd.append(l,n); card.append(hd);
+      if (!s.rows.length){ const e=document.createElement('div'); e.className='none'; e.textContent='No participants randomised yet.'; card.append(e); grid.append(card); return; }
+      const sp=document.createElement('div'); sp.className='split';
+      const a1=document.createElement('span'); a1.className='pill p-as'; a1.textContent='Surveillance '+s.rows.filter(r=>r.arm==='AS').length;
+      const a2=document.createElement('span'); a2.className='pill p-crt'; a2.textContent='CRT '+s.rows.filter(r=>r.arm==='CRT').length; sp.append(a1,a2); card.append(sp);
+      const box=document.createElement('div'); box.className='rtable'; const t=document.createElement('table');
+      t.innerHTML='<thead><tr><th>PID</th><th>Randomised</th><th>Arm</th><th>Status</th><th>Next FUP</th></tr></thead>';
+      const tb=document.createElement('tbody');
+      s.rows.slice().sort((x,y)=> (parseFloat(x.pid)||0)-(parseFloat(y.pid)||0) || String(x.pid).localeCompare(String(y.pid))).forEach(r=>{
+        const tr=document.createElement('tr');
+        const add=(v,cls)=>{ const td=document.createElement('td'); if(cls) td.className=cls; if (v instanceof Node) td.append(v); else td.textContent=v; tr.append(td); };
+        add(r.pid||'–','num'); tr.lastChild.style.fontWeight='600';
+        add(r.rand?fmt(r.rand):'–','num');
+        const p=document.createElement('span'); p.className='pill '+(r.arm==='AS'?'p-as':r.arm==='CRT'?'p-crt':'p-neutral'); p.textContent=r.arm==='AS'?'AS':r.arm||'–'; add(p);
+        add(r.status||'–'); add(r.next?fmt(r.next):'–','num');
+        tb.append(tr);
+      });
+      t.append(tb); box.append(t); card.append(box); grid.append(card);
+    });
+  }
+
+  /* ---------- Documents in local language ---------- */
+  const LANG = { Poland:'Polish', Spain:'Spanish', France:'French', Italy:'Italian', Belgium:'Dutch / French', Germany:'German', Switzerland:'German', Norway:'Norwegian', Greece:'Greek', Sweden:'Swedish', Netherlands:'Dutch' };
+  const DTYPES = [['Informed consent form','signed by the patient before randomisation'],['Patient information','information sheets and leaflets for patients'],['QoL questionnaire','EORTC QLQ-C30, QLQ-CR29 and LARS, patient-completed'],['Other','']];
+  const MASTER = 'All countries (English master)';
+  const DOCS = PKG.docs || [];
+  const kb = (n)=> n>=1048576 ? (n/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(n/1024))+' kB';
+  const ext = (f)=> (String(f).split('.').pop()||'').slice(0,4).toUpperCase();
+  async function download(d, btn){
+    const old = btn.textContent; btn.disabled=true; btn.textContent='Downloading…';
+    try {
+      const res = await fetch(d.src, {cache:'no-store'});
+      if (!res.ok) throw new Error('gone');
+      const buf = new Uint8Array(await res.arrayBuffer());
+      const key = await crypto.subtle.importKey('raw', Uint8Array.from(atob(d.key), c=>c.charCodeAt(0)), 'AES-GCM', false, ['decrypt']);
+      const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv:buf.slice(0,12)}, key, buf.slice(12));
+      const url = URL.createObjectURL(new Blob([plain], {type:d.mime||'application/octet-stream'}));
+      const a=document.createElement('a'); a.href=url; a.download=d.filename||'document'; document.body.append(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 30000);
+      btn.textContent=old;
+    } catch(e){ btn.textContent='Reload the page and try again'; }
+    btn.disabled=false;
+  }
+  function docRow(d){
+    const r=document.createElement('div'); r.className='doc'+(d.old?' old':'');
+    const ic=document.createElement('div'); ic.className='ic'; ic.textContent=ext(d.filename)||'FILE';
+    const m=document.createElement('div'); m.style.minWidth='0';
+    const t=document.createElement('div'); t.className='dt'; t.textContent=d.title + (d.parts>1 ? ' (file '+d.part+' of '+d.parts+')' : '');
+    const mt=document.createElement('div'); mt.className='dm';
+    if (d.country===MASTER){ const g=document.createElement('span'); g.className='tag all'; g.textContent='English master'; mt.append(g); }
+    else if (ALLV){ const g=document.createElement('span'); g.className='tag'; g.textContent=d.country; mt.append(g); }
+    [d.lang || (LANG[d.country]||''), d.version ? 'Version '+d.version : '', d.date ? 'dated '+(/^\d{4}-\d{2}-\d{2}$/.test(d.date) ? fmt(new Date(d.date+'T12:00:00')) : d.date) : '', kb(d.size||0), d.by ? 'added by '+d.by : ''].filter(Boolean).forEach(x=>{ const s=document.createElement('span'); s.textContent=x; mt.append(s); });
+    if (d.old){ const g=document.createElement('span'); g.className='tag'; g.textContent='Superseded'; mt.prepend(g); }
+    m.append(t, mt);
+    if (d.notes){ const n=document.createElement('div'); n.className='dn2'; n.textContent=d.notes; m.append(n); }
+    const b=document.createElement('button'); b.type='button'; b.className='btn'+(d.old?' ghost':''); b.textContent='Download'; b.setAttribute('aria-label','Download '+d.title); b.addEventListener('click', ()=>download(d,b));
+    r.append(ic, m, b); return r;
+  }
+  function renderDocs(){
+    const f = ALLV ? $('dc-filter').value : WHO;
+    $('dc-title').textContent = ALLV ? (f ? 'Documents · '+f : 'Documents in local language') : 'Documents · ' + WHO;
+    $('dc-sub').textContent = ALLV ? 'Approved patient-facing documents of every country: informed consent forms, patient information and quality-of-life questionnaires.' : 'Approved patient-facing documents in ' + (LANG[WHO]||'your language') + ': informed consent form, patient information and the quality-of-life questionnaires. Always print the current version.';
+    const up=$('dc-up');
+    if (L.docsForm){ let u=L.docsForm; const c = ALLV ? f : WHO; if (c){ u += (u.includes('?')?'&':'?') + 'prefill_Country=' + encodeURIComponent(c); } up.href=u; up.classList.remove('off'); up.removeAttribute('aria-disabled'); }
+    else { up.removeAttribute('href'); up.classList.add('off'); up.setAttribute('aria-disabled','true'); up.textContent='Upload form coming soon'; $('dc-uphint').textContent='Until the upload form is ready, send the approved file to the coordinating team' + (L.coordEmail ? ' ('+L.coordEmail+')' : '') + '.'; }
+    const g=$('dc-groups'); g.textContent='';
+    const mine = DOCS.filter(d=> !f || d.country===f || d.country===MASTER);
+    if (!mine.length){ g.innerHTML='<div class="empty">No documents yet. Upload the approved versions with the button above.</div>'; return; }
+    DTYPES.forEach(([type, sub])=>{
+      const ds = mine.filter(d=> (DTYPES.some(t=>t[0]===d.type) ? d.type : 'Other')===type)
+        .sort((a,b)=> (a.country===MASTER)-(b.country===MASTER) || String(a.country).localeCompare(String(b.country)) || String(b.date).localeCompare(String(a.date)) || a.title.localeCompare(b.title));
+      if (!ds.length) return;
+      const box=document.createElement('div'); box.className='dgroup';
+      const h=document.createElement('h3'); h.textContent=type; if (sub){ const s=document.createElement('small'); s.textContent=sub; h.append(s); } box.append(h);
+      const cur=document.createElement('div'); cur.className='dlist'; ds.filter(d=>!d.old).forEach(d=>cur.append(docRow(d))); box.append(cur);
+      const olds = ds.filter(d=>d.old);
+      if (olds.length){ const det=document.createElement('details'); det.className='dold'; const sm=document.createElement('summary'); sm.textContent='Older versions ('+olds.length+')'; det.append(sm); const dl=document.createElement('div'); dl.className='dlist'; olds.forEach(d=>dl.append(docRow(d))); det.append(dl); box.append(det); }
+      g.append(box);
+    });
+  }
+  if (ALLV){
+    $('dc-filter-box').hidden=false;
+    const cs = [...new Set([...(PKG.countries||[]), ...DOCS.map(d=>d.country).filter(c=>c!==MASTER)])].sort();
+    cs.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; $('dc-filter').append(o); });
+    $('dc-filter').addEventListener('change', renderDocs);
+  }
+  renderDocs();
+
   /* ---------- Start: data baked in by the hourly build ---------- */
-  const AR = window.TREX_AT || { records: [], fetchedAt: null };
+  const AR = PKG.at || { records: [], fetchedAt: null };
   ingest(AR.records || []);
   const fmtT = (d)=> d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   if (AR.fetchedAt){
@@ -420,4 +530,53 @@
   } else { $('fu-state').textContent = 'No data yet'; $('fu-state').className='pill p-neutral'; $('g-note').textContent = 'Waiting for the first automatic update.'; }
   $('fu-foot').textContent = 'Record visits in Airtable (M… FUP date fields). This page is rebuilt automatically every hour.';
   $('f-upd').textContent = D.updated ? fmt(new Date(D.updated)) : '';
+  if (!ALLV){ const fp=document.querySelector('#followup .shead p'); if (fp) fp.textContent = 'Every randomised participant at the ' + WHO + ' sites with their next follow-up date, from Airtable, refreshed automatically every hour. Sorted by the nearest visit; hover over a row (or tap it) to see what is done at that visit.'; }
+};
+
+/* ---------- Sign-in: the password picks and decrypts one package ---------- */
+(function(){
+  const B = window.TREX_BOOT || {};
+  const $ = (id)=>document.getElementById(id);
+  const nrm = (s)=> String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const hex = (u)=> [...u].map(b=>b.toString(16).padStart(2,'0')).join('');
+  const KEY = 'trex-auth';
+  async function unlock(pw){
+    const salt = Uint8Array.from(atob(B.salt), c=>c.charCodeAt(0));
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(nrm(pw)), 'PBKDF2', false, ['deriveBits']);
+    const bits = new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2', hash:'SHA-256', salt, iterations:B.iter}, base, 512));
+    const res = await fetch('p/' + hex(bits.slice(32,48)) + '.bin', {cache:'no-store'});
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('net');
+    const buf = new Uint8Array(await res.arrayBuffer());
+    const key = await crypto.subtle.importKey('raw', bits.slice(0,32), 'AES-GCM', false, ['decrypt']);
+    const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv:buf.slice(0,12)}, key, buf.slice(12));
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+  function enter(pkg){
+    document.body.classList.remove('locked');
+    window.TREX_START(pkg);
+  }
+  function err(t){ const e=$('lerr'); e.textContent=t; e.hidden=!t; }
+  $('lform').addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const pw = $('lpw').value; if (!pw.trim()) return;
+    const btn=$('lbtn'); btn.disabled=true; btn.textContent='Opening…'; err('');
+    try {
+      const pkg = await unlock(pw);
+      if (!pkg){ err('Wrong password. Use the name of your country (for example: poland), or the coordinating team password.'); }
+      else {
+        try { if ($('lrem').checked) localStorage.setItem(KEY, JSON.stringify({pw, exp: Date.now()+30*864e5})); else localStorage.removeItem(KEY); } catch(_){}
+        enter(pkg); return;
+      }
+    } catch(e){ err('The hub could not be loaded. Check your internet connection and try again.'); }
+    btn.disabled=false; btn.textContent='Open'; $('lpw').select();
+  });
+  $('logout').addEventListener('click', ()=>{ try{ localStorage.removeItem(KEY); }catch(_){} location.reload(); });
+  (async ()=>{
+    let saved=null; try { saved = JSON.parse(localStorage.getItem(KEY)||'null'); } catch(_){}
+    if (saved && saved.pw && saved.exp > Date.now()){
+      try { const pkg = await unlock(saved.pw); if (pkg){ enter(pkg); return; } } catch(_){}
+      try { localStorage.removeItem(KEY); } catch(_){}
+    }
+  })();
 })();

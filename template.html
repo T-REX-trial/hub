@@ -165,6 +165,12 @@ tr.due td{background:var(--warn-bg)}
 .gsplit span{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
 .gsplit .a{background:#C6E9C9;color:#1E4A25} .gsplit .c{background:#F7CFC7;color:#6E3328}
 tr.soon td{background:var(--warn-bg)}
+#fu-body tr{cursor:help}
+#fu-body tr:hover td{background:var(--surface-2)}
+#fu-body tr.soon:hover td{background:var(--warn-bg)}
+.comp{display:flex;flex-wrap:wrap;gap:4px;min-width:200px}
+.comp span{font-size:11px;padding:2px 7px;border-radius:6px;background:var(--surface-2);color:var(--ink);white-space:nowrap}
+.comp span.k{background:var(--sprout);color:var(--sprout-ink)}
 .sched{font-size:13px}
 .sched th,.sched td{text-align:center;padding:8px 6px}
 .sched th:first-child,.sched td:first-child{text-align:left;white-space:nowrap;position:sticky;left:0;background:var(--surface);z-index:1}
@@ -353,9 +359,82 @@ img{max-width:100%}
 .maplegend span{display:inline-flex;align-items:center;gap:6px}
 .maplegend .pin{width:12px;height:12px;border-radius:6px;border:2.5px solid var(--teal);background:var(--surface);display:inline-block}
 .maplegend .pin.on{background:var(--teal)}
+.guide figure.gimg{margin:4px 0 6px 38px;display:flex;flex-direction:column;gap:6px;max-width:560px}
+.guide figure.gimg img{width:100%;height:auto;border-radius:12px;border:1px solid var(--line);box-shadow:0 6px 20px rgba(15,45,43,.12)}
+.guide figure.gimg figcaption{font-size:13px;color:var(--muted)}
+@media (max-width:560px){.guide figure.gimg{margin-left:0}}
+
+/* login */
+body.locked .bar,body.locked .hero,body.locked main,body.locked footer{display:none!important}
+.login{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px 16px;background:var(--hero);position:relative;overflow:hidden}
+body:not(.locked) .login{display:none}
+.login svg.rings{position:absolute;inset:auto -200px -260px auto;width:900px;height:700px;pointer-events:none}
+.lcard{position:relative;background:var(--surface);color:var(--ink);border-radius:20px;padding:30px 28px;width:min(420px,100%);display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.lcard .lhead{display:flex;align-items:center;gap:12px}
+.lcard .lhead b{font-family:var(--display);font-weight:800;letter-spacing:.12em;font-size:22px;color:var(--teal)}
+.lcard .lhead span{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.lcard h1{font-size:20px}
+.lcard p{margin:0;color:var(--muted);font-size:14px}
+.lcard input[type=password]{font-size:16px}
+.lcard .chkrow{display:flex;gap:8px;align-items:center;font-weight:400;color:var(--ink);font-size:14px;cursor:pointer}
+.lcard .chkrow input{width:18px;height:18px;accent-color:var(--teal)}
+.lerr{background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600}
+.btn[disabled]{opacity:.6;cursor:wait}
+.who{display:flex;align-items:center;gap:8px;font-size:13px}
+.who .pill{background:var(--sprout);color:var(--sprout-ink)}
+.who button{font-size:13px;border:0;background:transparent;color:var(--muted);text-decoration:underline;padding:6px 4px;min-height:32px}
+.who button:hover{color:var(--ink)}
+.glance .mine{font-size:14px;color:var(--hero-ink);background:rgba(255,255,255,.1);border-radius:10px;padding:8px 12px}
+/* recruited dashboard */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.rsite{border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.rsite header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;background:var(--surface-2)}
+.rsite header b{font-family:var(--display);font-size:17px;display:block}
+.rsite header small{font-size:12px;color:var(--muted)}
+.rsite .rcount{font-family:var(--display);font-weight:800;font-size:28px;line-height:1;text-align:right}
+.rsite .rcount small{display:block;font-family:var(--text);font-weight:500;font-size:11px;color:var(--muted)}
+.rsite .split{display:flex;gap:6px;padding:10px 16px 0;flex-wrap:wrap}
+.rsite table{font-size:13px}
+.rsite th,.rsite td{padding:8px 10px}
+.rsite .rtable{overflow-x:auto;padding:8px 6px 6px}
+.rsite .none{padding:14px 16px;color:var(--muted);font-size:14px}
+.ctryh{font-size:13px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:6px 0 -4px;grid-column:1/-1}
+/* documents */
+.dgroups{display:flex;flex-direction:column;gap:22px}
+.dgroup h3{font-size:16px;margin:0 0 10px;display:flex;align-items:baseline;gap:10px}
+.dgroup h3 small{font-family:var(--text);font-weight:400;font-size:13px;color:var(--muted)}
+.dlist{display:flex;flex-direction:column;gap:8px}
+.doc{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.doc .ic{width:44px;height:52px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:500;color:var(--teal);border:1px solid var(--line)}
+.doc .dt{font-weight:600;overflow-wrap:anywhere}
+.doc .dm{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:2px}
+.doc .dn2{font-size:13px;color:var(--ink);margin-top:4px}
+.doc.old{opacity:.72}
+.doc .tag{font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.doc .tag.all{background:var(--r-data-bg);color:var(--r-data-ink)}
+.dold summary{cursor:pointer;font-size:13px;color:var(--muted);padding:6px 0}
+.dold[open] summary{margin-bottom:8px}
+@media (max-width:560px){.doc{grid-template-columns:minmax(0,1fr)}.doc .ic{display:none}.doc .btn{width:100%}}
+.upbar{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--sprout);color:var(--sprout-ink);border-radius:14px;padding:16px 18px}
+.upbar div{display:flex;flex-direction:column;gap:2px;flex:1 1 280px;min-width:0}
+.upbar span{font-size:14px}
+.btn.off{opacity:.55;pointer-events:none}
 </style>
 </head>
-<body>
+<body class="locked">
+<div class="login" id="login">
+  <svg class="rings" viewBox="0 0 900 700" aria-hidden="true"><g fill="none" stroke="#0A4542" stroke-width="28"><circle cx="450" cy="350" r="90"/><circle cx="450" cy="350" r="200"/><circle cx="450" cy="350" r="330"/></g><circle cx="450" cy="350" r="34" fill="#FFFFFF" opacity=".9"/></svg>
+  <form class="lcard" id="lform" autocomplete="on">
+    <div class="lhead"><img src="__LOGO__" width="44" height="44" alt=""><div><b>T-REX</b><span>Trial hub</span></div></div>
+    <h1>Sign in to the trial hub</h1>
+    <p>Enter the password for your country. The coordinating team has a separate password that shows all countries.</p>
+    <input type="text" name="username" autocomplete="username" value="T-REX hub" hidden>
+    <div class="field"><label for="lpw">Password</label><input type="password" id="lpw" autocomplete="current-password" required autofocus></div>
+    <label class="chkrow"><input type="checkbox" id="lrem" checked> Remember me on this device for 30 days</label>
+    <div class="lerr" id="lerr" role="alert" hidden></div>
+    <button class="btn big" type="submit" id="lbtn" style="justify-content:center">Open</button>
+  </form>
+</div>
 
 <header class="bar">
   <div class="wrap">
@@ -367,8 +446,10 @@ img{max-width:100%}
       <a href="#overview" id="tab-overview" role="tab" aria-controls="overview">Overview</a>
       <a href="#visits" id="tab-visits" role="tab" aria-controls="visits">Follow-up</a>
       <a href="#instructions" id="tab-instructions" role="tab" aria-controls="instructions">Instructions</a>
+      <a href="#documents" id="tab-documents" role="tab" aria-controls="documents">Documents</a>
       <a href="#contacts" id="tab-contacts" role="tab" aria-controls="contacts">Team &amp; links</a>
     </nav>
+    <div class="who"><span class="pill" id="who-name">–</span><button type="button" id="logout">Sign out</button></div>
   </div>
 </header>
 
@@ -393,6 +474,7 @@ img{max-width:100%}
         <div><strong class="num">5 yrs</strong>follow-up</div>
       </div>
       <div class="gsplit" id="g-split"></div>
+      <div class="mine" id="g-mine" hidden></div>
       <div style="font-size:12px;color:var(--hero-soft)" id="g-note"></div>
     </div>
   </div>
@@ -400,6 +482,12 @@ img{max-width:100%}
 
 <main class="wrap">
 <div class="panel" id="overview" role="tabpanel" aria-labelledby="tab-overview">
+  <section class="card" id="recruited">
+    <div class="shead">
+      <div><h2 id="rc-title">Recruited participants</h2><p id="rc-sub">Every randomised participant per site, from Airtable. Refreshed automatically every hour.</p></div>
+    </div>
+    <div class="rgrid" id="rc-grid"></div>
+  </section>
 
   <section class="card" id="updates">
       <div class="shead">
@@ -433,7 +521,7 @@ img{max-width:100%}
 <div class="panel" id="visits" role="tabpanel" aria-labelledby="tab-visits" hidden>
   <section class="card" id="followup">
     <div class="shead">
-      <div><h2>Follow-up</h2><p>Every randomised participant with their next follow-up date, from the Airtable "Patients" table, refreshed automatically every hour. Sorted by the nearest visit.</p></div>
+      <div><h2>Follow-up</h2><p>Every randomised participant with their next follow-up date, from the Airtable "Patients" table, refreshed automatically every hour. Sorted by the nearest visit; hover over a row (or tap it) to see what is done at that visit.</p></div>
       <div class="row" style="gap:8px">
         <span class="pill p-ok" id="fu-state">–</span>
       </div>
@@ -446,7 +534,7 @@ img{max-width:100%}
     </div>
     <div class="tablebox">
       <table>
-        <thead><tr><th>PID</th><th>Site</th><th>Arm</th><th>Randomised</th><th>Status</th><th>Next follow-up</th><th>In</th></tr></thead>
+        <thead><tr><th>PID</th><th>Site</th><th>Arm</th><th>Randomised</th><th>Status</th><th>Next follow-up</th><th>In</th><th>At this visit</th></tr></thead>
         <tbody id="fu-body"></tbody>
       </table>
     </div>
@@ -455,7 +543,7 @@ img{max-width:100%}
 
   <section class="card" id="calendars">
     <div class="shead">
-      <div><h2>Site calendars</h2><p>Follow-up visits per active site, from Airtable. A site is active when it is recruiting or already has randomised participants.</p></div>
+      <div><h2>Site calendars</h2><p>Follow-up visits per active site, from Airtable. A site is active when it is recruiting or already has randomised participants. Hover over or tap a visit to see its assessments.</p></div>
       <div class="calnav">
         <button class="btn ghost small" type="button" id="cal-prev" aria-label="Previous month">‹</button>
         <strong class="num" id="cal-title">–</strong>
@@ -501,11 +589,11 @@ img{max-width:100%}
     </div>
     <div class="actionbar" id="gd-act-rand">
       <div><strong>Ready to randomise?</strong><span>Complete the Airtable form once eligibility and consent are confirmed. The arm is assigned when you submit.</span></div>
-      <a class="btn big" id="gd-form-link" href="https://airtable.com/appUIdFlPDYSWeJ2A/pagplCLBh8XuL5Q4q/form" target="_blank" rel="noopener">Open randomisation form ↗</a>
+      <a class="btn big" id="gd-form-link" href="#" target="_blank" rel="noopener">Open randomisation form ↗</a>
     </div>
     <div class="actionbar" id="gd-act-crf" hidden>
       <div><strong>Data entry in Ledidi</strong><span>Sign in with your personal Ledidi account. Use the map below to pick the right form.</span></div>
-      <a class="btn big" id="gd-ledidi-link" href="https://app.ledidi.no/projects/30708/dataset" target="_blank" rel="noopener">Open Ledidi ↗</a>
+      <a class="btn big" id="gd-ledidi-link" href="#" target="_blank" rel="noopener">Open Ledidi ↗</a>
     </div>
     <figure class="flow" id="gd-flow" hidden aria-labelledby="flow-cap">
       <figcaption id="flow-cap"><strong>CRF map</strong> Which Ledidi form to open, and when.</figcaption>
@@ -571,6 +659,19 @@ img{max-width:100%}
     <div class="guide" id="gd-body"><div class="empty">The guide loads from the hub's shared store. Editors can write it with "Edit guide".</div></div>
   </section>
 </div>
+<div class="panel" id="documents" role="tabpanel" aria-labelledby="tab-documents" hidden>
+  <section class="card" id="docs">
+    <div class="shead">
+      <div><h2 id="dc-title">Documents in local language</h2><p id="dc-sub">Approved patient-facing documents for your country: informed consent form, patient information and the quality-of-life questionnaires.</p></div>
+      <div class="field" id="dc-filter-box" hidden style="min-width:200px"><label for="dc-filter">Country</label><select id="dc-filter"><option value="">All countries</option></select></div>
+    </div>
+    <div class="upbar">
+      <div><strong>Add a document</strong><span id="dc-uphint">Upload the approved, current version through the form. It appears here within an hour, after the next automatic update.</span></div>
+      <a class="btn big" id="dc-up" href="#" target="_blank" rel="noopener">Upload document ↗</a>
+    </div>
+    <div class="dgroups" id="dc-groups"></div>
+  </section>
+</div>
 <div class="panel" id="contacts" role="tabpanel" aria-labelledby="tab-contacts" hidden>
   <section class="card" id="team">
     <div class="shead">
@@ -598,8 +699,7 @@ img{max-width:100%}
   </div>
 </footer>
 
-<script>__CONTENT__</script>
-<script>__AIRTABLE__</script>
+<script>__BOOT__</script>
 <script>window.TREX_PROJ = {"scale": 900.436840033267, "translate": [434.986330569243, 1301.6798495774508]};</script>
 <script>__APP__</script>
 </body>
