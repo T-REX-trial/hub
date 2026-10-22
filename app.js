@@ -144,7 +144,7 @@ window.TREX_START = function(PKG){
     const P = window.TREX_PROJ; const g = $('map-pins'); if (!P || !g) return;
     const NS='http://www.w3.org/2000/svg'; g.textContent='';
     const xy = (lon,lat)=>{ const l=lon*Math.PI/180, f=lat*Math.PI/180; return [P.scale*l + P.translate[0], -P.scale*Math.log(Math.tan(Math.PI/4+f/2)) + P.translate[1]]; };
-    const LEFT = new Set(['Ghent','Limoges','Barcelona','Basel']);
+    const LEFT = new Set(['Ghent','Limoges','Barcelona','Basel','Paris','Nantes']);
     ALLSITES.map(d=>d.data()).filter(s=>typeof s.lat==='number').sort((a,b)=> (a.status==='Recruiting') - (b.status==='Recruiting')).forEach(s=>{
       const [x,y]=xy(s.lon,s.lat); const on = s.status==='Recruiting';
       const cnt = (typeof AT!=='undefined' && AT.bySite && AT.bySite[norm(s.name)]) ? AT.bySite[norm(s.name)].n : 0;
@@ -454,8 +454,9 @@ window.TREX_START = function(PKG){
 
   /* ---------- Documents in local language ---------- */
   const LANG = { Poland:'Polish', Spain:'Spanish', France:'French', Italy:'Italian', Belgium:'Dutch / French', Germany:'German', Switzerland:'German', Norway:'Norwegian', Greece:'Greek', Sweden:'Swedish', Netherlands:'Dutch' };
-  const DTYPES = [['Informed consent form','signed by the patient before randomisation'],['Patient information','information sheets and leaflets for patients'],['QoL questionnaire','EORTC QLQ-C30, QLQ-CR29 and LARS, patient-completed'],['Other','']];
-  const MASTER = 'All countries (English master)';
+  const NAT = [['Informed consent form','Patient consent form','signed by the patient before randomisation'],['Patient information','Patient information materials','information sheets and leaflets for patients'],['QoL questionnaire','QoL forms','EORTC QLQ-C30, QLQ-CR29 and LARS, patient-completed']];
+  const GENC = ['General (all countries)','All countries (English master)'];
+  const isGen = (d)=> ['Protocol','DSMB charter'].includes(d.type) || (GENC.includes(d.country) && !NAT.some(t=>t[0]===d.type));
   const DOCS = PKG.docs || [];
   const kb = (n)=> n>=1048576 ? (n/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(n/1024))+' kB';
   const ext = (f)=> (String(f).split('.').pop()||'').slice(0,4).toUpperCase();
@@ -480,40 +481,77 @@ window.TREX_START = function(PKG){
     const m=document.createElement('div'); m.style.minWidth='0';
     const t=document.createElement('div'); t.className='dt'; t.textContent=d.title + (d.parts>1 ? ' (file '+d.part+' of '+d.parts+')' : '');
     const mt=document.createElement('div'); mt.className='dm';
-    if (d.country===MASTER){ const g=document.createElement('span'); g.className='tag all'; g.textContent='English master'; mt.append(g); }
-    else if (ALLV){ const g=document.createElement('span'); g.className='tag'; g.textContent=d.country; mt.append(g); }
-    [d.lang || (LANG[d.country]||''), d.version ? 'Version '+d.version : '', d.date ? 'dated '+(/^\d{4}-\d{2}-\d{2}$/.test(d.date) ? fmt(new Date(d.date+'T12:00:00')) : d.date) : '', kb(d.size||0), d.by ? 'added by '+d.by : ''].filter(Boolean).forEach(x=>{ const s=document.createElement('span'); s.textContent=x; mt.append(s); });
+    if (GENC.includes(d.country) && !isGen(d)){ const g=document.createElement('span'); g.className='tag all'; g.textContent='English master'; mt.append(g); }
+    else if (ALLV && !GENC.includes(d.country)){ const g=document.createElement('span'); g.className='tag'; g.textContent=d.country; mt.append(g); }
+    [d.lang || (isGen(d) ? '' : (LANG[d.country]||'')), d.version ? 'Version '+d.version : '', d.date ? 'dated '+(/^\d{4}-\d{2}-\d{2}$/.test(d.date) ? fmt(new Date(d.date+'T12:00:00')) : d.date) : '', kb(d.size||0), d.by ? 'added by '+d.by : ''].filter(Boolean).forEach(x=>{ const s=document.createElement('span'); s.textContent=x; mt.append(s); });
     if (d.old){ const g=document.createElement('span'); g.className='tag'; g.textContent='Superseded'; mt.prepend(g); }
     m.append(t, mt);
     if (d.notes){ const n=document.createElement('div'); n.className='dn2'; n.textContent=d.notes; m.append(n); }
     const b=document.createElement('button'); b.type='button'; b.className='btn'+(d.old?' ghost':''); b.textContent='Download'; b.setAttribute('aria-label','Download '+d.title); b.addEventListener('click', ()=>download(d,b));
     r.append(ic, m, b); return r;
   }
+  function linkRow(title, sub, href, tagText){
+    const r=document.createElement('div'); r.className='doc';
+    const ic=document.createElement('div'); ic.className='ic'; ic.textContent= href ? 'LINK' : '—';
+    const m=document.createElement('div'); m.style.minWidth='0';
+    const t=document.createElement('div'); t.className='dt'; t.textContent=title;
+    const mt=document.createElement('div'); mt.className='dm'; if (tagText){ const g=document.createElement('span'); g.className='tag'; g.textContent=tagText; mt.append(g); } const s=document.createElement('span'); s.textContent=sub; mt.append(s);
+    m.append(t, mt);
+    let b;
+    if (href){ b=document.createElement('a'); b.className='btn'; b.href=href; b.target='_blank'; b.rel='noopener'; b.textContent='Open ↗'; b.style.textDecoration='none'; }
+    else { b=document.createElement('span'); b.className='pill p-neutral'; b.textContent='Not yet available'; }
+    r.append(ic, m, b); return r;
+  }
+  function docGroup(parent, title, sub, ds, extra){
+    const box=document.createElement('div'); box.className='dgroup';
+    const h=document.createElement('h3'); h.textContent=title; if (sub){ const s=document.createElement('small'); s.textContent=sub; h.append(s); } box.append(h);
+    const cur=document.createElement('div'); cur.className='dlist';
+    (extra||[]).forEach(x=>cur.append(x));
+    ds.filter(d=>!d.old).forEach(d=>cur.append(docRow(d)));
+    if (!cur.children.length){ const e=document.createElement('div'); e.className='empty'; e.textContent='Nothing uploaded yet.'; cur.append(e); }
+    box.append(cur);
+    const olds = ds.filter(d=>d.old);
+    if (olds.length){ const det=document.createElement('details'); det.className='dold'; const sm=document.createElement('summary'); sm.textContent='Older versions ('+olds.length+')'; det.append(sm); const dl=document.createElement('div'); dl.className='dlist'; olds.forEach(d=>dl.append(docRow(d))); det.append(dl); box.append(det); }
+    parent.append(box);
+  }
+  const sortD = (a,b)=> (GENC.includes(a.country))-(GENC.includes(b.country)) || String(a.country).localeCompare(String(b.country)) || String(b.date).localeCompare(String(a.date)) || a.title.localeCompare(b.title);
+  function embedUrl(u){ const m=/^https:\/\/airtable\.com\/(?:embed\/)?(app[A-Za-z0-9]+\/(?:pag|shr)[A-Za-z0-9]+(?:\/form)?)/.exec(u||''); return m ? 'https://airtable.com/embed/'+m[1] : ''; }
+  function renderUpload(){
+    const f = ALLV ? $('dc-filter').value : WHO;
+    const btn=$('dc-up'), box=$('dc-upbox'), fr=$('dc-frame');
+    const eu = embedUrl(L.docsForm);
+    if (!eu){ btn.classList.add('off'); btn.setAttribute('aria-disabled','true'); btn.textContent='Upload form coming soon'; $('dc-uphint').textContent='Until the upload form is ready, send the approved file to the coordinating team' + (L.coordEmail ? ' ('+L.coordEmail+')' : '') + '.'; box.hidden=true; return; }
+    let u = eu + '?backgroundColor=teal';
+    if (f) u += '&prefill_Country=' + encodeURIComponent(f) + (ALLV ? '' : '&hide_Country=true');
+    fr.dataset.src = u;
+    if (!box.hidden && fr.src !== u) fr.src = u;
+  }
+  $('dc-up').addEventListener('click', (e)=>{ e.preventDefault(); const box=$('dc-upbox'), fr=$('dc-frame'); if ($('dc-up').classList.contains('off')) return; box.hidden=!box.hidden; $('dc-up').textContent = box.hidden ? 'Upload a document' : 'Close upload form'; $('dc-up').setAttribute('aria-expanded', String(!box.hidden)); if (!box.hidden){ if (fr.src !== fr.dataset.src) fr.src = fr.dataset.src; box.scrollIntoView({behavior:'smooth', block:'start'}); } });
   function renderDocs(){
     const f = ALLV ? $('dc-filter').value : WHO;
-    $('dc-title').textContent = ALLV ? (f ? 'Documents · '+f : 'Documents in local language') : 'Documents · ' + WHO;
-    $('dc-sub').textContent = ALLV ? 'Approved patient-facing documents of every country: informed consent forms, patient information and quality-of-life questionnaires.' : 'Approved patient-facing documents in ' + (LANG[WHO]||'your language') + ': informed consent form, patient information and the quality-of-life questionnaires. Always print the current version.';
-    const up=$('dc-up');
-    if (L.docsForm){ let u=L.docsForm; const c = ALLV ? f : WHO; if (c){ u += (u.includes('?')?'&':'?') + 'prefill_Country=' + encodeURIComponent(c); } up.href=u; up.classList.remove('off'); up.removeAttribute('aria-disabled'); }
-    else { up.removeAttribute('href'); up.classList.add('off'); up.setAttribute('aria-disabled','true'); up.textContent='Upload form coming soon'; $('dc-uphint').textContent='Until the upload form is ready, send the approved file to the coordinating team' + (L.coordEmail ? ' ('+L.coordEmail+')' : '') + '.'; }
+    $('dc-title').textContent = ALLV ? (f ? 'Documents · '+f : 'Documents') : 'Documents · ' + WHO;
+    $('dc-sub').textContent = 'Approved study documents. National-language documents for patients, and general documents for every site. Always use the current version.';
+    renderUpload();
     const g=$('dc-groups'); g.textContent='';
-    const mine = DOCS.filter(d=> !f || d.country===f || d.country===MASTER);
-    if (!mine.length){ g.innerHTML='<div class="empty">No documents yet. Upload the approved versions with the button above.</div>'; return; }
-    DTYPES.forEach(([type, sub])=>{
-      const ds = mine.filter(d=> (DTYPES.some(t=>t[0]===d.type) ? d.type : 'Other')===type)
-        .sort((a,b)=> (a.country===MASTER)-(b.country===MASTER) || String(a.country).localeCompare(String(b.country)) || String(b.date).localeCompare(String(a.date)) || a.title.localeCompare(b.title));
-      if (!ds.length) return;
-      const box=document.createElement('div'); box.className='dgroup';
-      const h=document.createElement('h3'); h.textContent=type; if (sub){ const s=document.createElement('small'); s.textContent=sub; h.append(s); } box.append(h);
-      const cur=document.createElement('div'); cur.className='dlist'; ds.filter(d=>!d.old).forEach(d=>cur.append(docRow(d))); box.append(cur);
-      const olds = ds.filter(d=>d.old);
-      if (olds.length){ const det=document.createElement('details'); det.className='dold'; const sm=document.createElement('summary'); sm.textContent='Older versions ('+olds.length+')'; det.append(sm); const dl=document.createElement('div'); dl.className='dlist'; olds.forEach(d=>dl.append(docRow(d))); det.append(dl); box.append(det); }
-      g.append(box);
-    });
+    // national language
+    const natHead=document.createElement('div'); natHead.className='dsec';
+    const h2=document.createElement('h3'); h2.className='dsech'; h2.textContent = 'Documents in national language' + (!ALLV ? ' · ' + (LANG[WHO]||WHO) : (f ? ' · ' + f : '')); natHead.append(h2); g.append(natHead);
+    const natDocs = DOCS.filter(d=> !isGen(d) && (!f || d.country===f || GENC.includes(d.country)));
+    NAT.forEach(([key,label,sub])=> docGroup(natHead, label, sub, natDocs.filter(d=>d.type===key).sort(sortD)));
+    const other = natDocs.filter(d=>!NAT.some(t=>t[0]===d.type));
+    if (other.length) docGroup(natHead, 'Other', '', other.sort(sortD));
+    // general
+    const gen=document.createElement('div'); gen.className='dsec';
+    const h3=document.createElement('h3'); h3.className='dsech'; h3.textContent='General'; gen.append(h3); g.append(gen);
+    const genDocs = DOCS.filter(isGen);
+    const prot = genDocs.filter(d=>d.type==='Protocol'), dsmb = genDocs.filter(d=>d.type==='DSMB charter'), rest = genDocs.filter(d=>d.type!=='Protocol' && d.type!=='DSMB charter');
+    docGroup(gen, 'Protocol', 'current version and amendments', prot.sort(sortD), (L.protocol && !prot.some(d=>!d.old)) ? [linkRow('T-REX protocol', 'current version and amendments, in the shared folder', L.protocol, 'OneDrive')] : []);
+    docGroup(gen, 'DSMB charter', 'Data and Safety Monitoring Board', dsmb.sort(sortD), (!dsmb.some(d=>!d.old)) ? [linkRow('DSMB charter', 'will be added once approved', L.dsmb||'', '')] : []);
+    if (rest.length) docGroup(gen, 'Other general documents', '', rest.sort(sortD));
   }
   if (ALLV){
     $('dc-filter-box').hidden=false;
-    const cs = [...new Set([...(PKG.countries||[]), ...DOCS.map(d=>d.country).filter(c=>c!==MASTER)])].sort();
+    const cs = [...new Set([...(PKG.countries||[]), ...DOCS.map(d=>d.country).filter(c=>!GENC.includes(c))])].sort();
     cs.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; $('dc-filter').append(o); });
     $('dc-filter').addEventListener('change', renderDocs);
   }
