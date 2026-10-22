@@ -20,6 +20,8 @@ SRC = ROOT / "src" if (ROOT / "src" / "template.html").exists() else ROOT
 BASE = "appUIdFlPDYSWeJ2A"
 TABLE = "tblj8GiDWb5NkGzlQ"
 DOCS_TABLE = "tblwxPH7Jba2zIf5f"
+TEAM_TABLE = "tblwFjHPu3Fn76OAD"
+T = {"name": "fldMT2hR7QUg5dPNi", "role": "fldaCC7eqtVzg8Iwp", "site": "fld1dF1O0h8T9oI0L", "email": "fldo6CYAzVtynrVd6", "phone": "fld3xAdwhII04k3ls", "hide": "fldZWYPZMs5oAtmEG"}
 ITER = 250000
 FIELDS = [
     # PID, country, site, arm (lookup), allocation, randomisation date, FUP status, closest FUP
@@ -90,8 +92,8 @@ def fetch_table(token, table, fields):
             with urllib.request.urlopen(req, timeout=60) as r:
                 page = json.load(r)
         except urllib.error.HTTPError as e:
-            if table == DOCS_TABLE:
-                print(f"Documents table not readable ({e.code}); building without documents.")
+            if table in (DOCS_TABLE, TEAM_TABLE):
+                print(f"Table {table} not readable ({e.code}); building without it.")
                 return []
             sys.exit(f"Airtable refused the request ({e.code}). Check that AIRTABLE_TOKEN has data.records:read on the T-REX randomisation base.")
         for rec in page.get("records", []):
@@ -121,10 +123,20 @@ def main():
     if local:  # for testing without a token
         records = json.load(open(local))
         docs = json.load(open(os.environ["LOCAL_DOCS"])) if os.environ.get("LOCAL_DOCS") else []
+        team = json.load(open(os.environ["LOCAL_TEAM"])) if os.environ.get("LOCAL_TEAM") else []
     else:
         token = need("AIRTABLE_TOKEN")
         records = fetch_table(token, TABLE, FIELDS)
         docs = fetch_table(token, DOCS_TABLE, list(D.values()))
+        team = fetch_table(token, TEAM_TABLE, list(T.values()))
+    added = []
+    for t in team:
+        f = t.get("fields", {})
+        if f.get(T["hide"]) or not text(f.get(T["name"])).strip():
+            continue
+        added.append({"name": text(f.get(T["name"])).strip(), "role": text(f.get(T["role"])), "site": text(f.get(T["site"])),
+                      "email": text(f.get(T["email"])).strip(), "phone": text(f.get(T["phone"])).strip()})
+    content["teamAdded"] = added
     fetched = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     # country of every participant: from the site list, else the Airtable country field

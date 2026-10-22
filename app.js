@@ -7,6 +7,16 @@ window.TREX_START = function(PKG){
   const WHO = PKG.who || 'all';
   const ALLV = WHO === 'all';
   $('who-name').textContent = ALLV ? 'All countries' : WHO;
+  function formEmbed(u){ const m=/^https:\/\/airtable\.com\/(?:embed\/)?(app[A-Za-z0-9]+\/(?:pag|shr)[A-Za-z0-9]+(?:\/form)?)/.exec(u||''); return m ? 'https://airtable.com/embed/'+m[1] : ''; }
+  function openForm(url, title, prefill){
+    const dlg=$('formdlg'); const eu=formEmbed(url);
+    $('formdlg-title').textContent=title;
+    const fr=$('formdlg-frame'), msg=$('formdlg-msg');
+    if (!eu){ fr.hidden=true; msg.hidden=false; msg.textContent='The form is being set up. Until then, send the details to the coordinating team' + (L.coordEmail ? ' ('+L.coordEmail+')' : '') + '.'; }
+    else { let u=eu+'?backgroundColor=teal'; Object.entries(prefill||{}).forEach(([k,v])=>{ u+='&prefill_'+encodeURIComponent(k)+'='+encodeURIComponent(v)+'&hide_'+encodeURIComponent(k)+'=true'; }); fr.hidden=false; msg.hidden=true; fr.src=u; }
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open','');
+  }
+  $('formdlg-close').addEventListener('click', ()=>{ $('formdlg').close(); $('formdlg-frame').src='about:blank'; });
 
   /* ---------- Tabs ---------- */
   const PANELS = ['overview','visits','instructions','documents','contacts'];
@@ -79,7 +89,7 @@ window.TREX_START = function(PKG){
     {k:'drive', label:'T-REX shared folder (OneDrive)'},
     {k:'form', label:'Airtable randomisation form'},
     {k:'airtable', label:'Airtable: T-REX randomisation base'},
-    {k:'protocol', label:'Protocol v1.1 and amendments'},
+    {k:'protocol', label:'Protocol v1.2'},
     {k:'isf', label:'Investigator Site File templates'},
     {k:'brand', label:'Logo files and slide templates'}
   ];
@@ -90,7 +100,7 @@ window.TREX_START = function(PKG){
   });
   const LGROUPS = [
     ['Daily work', [['edc','Ledidi eCRF','personal account'],['form','Randomisation form','Airtable']]],
-    ['Documents', [['protocol','Protocol','v1.1 and amendments'],['drive','T-REX shared folder','OneDrive'],['isf','Investigator Site File','templates']]],
+    ['Documents', [['protocol','Protocol','v1.2'],['drive','T-REX shared folder','OneDrive'],['isf','Investigator Site File','templates']]],
     ['Identity', [['brand','Logo and slide templates','T-REX visual identity']]]
   ];
   const lg = $('link-groups');
@@ -174,10 +184,13 @@ window.TREX_START = function(PKG){
     if (!compact && r.site){ const s=document.createElement('span'); s.textContent=r.site; rl.append(s); }
     p.append(nm, rl);
     if (r.email){ const a=document.createElement('a'); a.href='mailto:'+r.email; a.textContent=r.email; p.append(a); }
+    if (r.phone){ const a=document.createElement('a'); a.href='tel:'+r.phone.replace(/[^+\d]/g,''); a.textContent=r.phone; p.append(a); }
     return p;
   }
   const byLast = (x,y)=> String(x.last).localeCompare(String(y.last),'en',{sensitivity:'base'});
   const TEAM = (D.team||[]).slice();
+  const RTYPE_OF = { 'Site PI':'inv', 'Local co-PI':'inv', 'Investigator':'inv', 'Site coordinator':'coord', 'Study nurse':'coord', 'Data manager':'coord', 'Administration':'admin', 'Other':'coord' };
+  (D.teamAdded||[]).forEach(m=>{ const parts=m.name.split(/\s+/); TEAM.push({ first: parts.slice(0,-1).join(' ') || m.name, last: parts.length>1 ? parts[parts.length-1] : '', role: m.role || 'Team member', site: m.site || 'Other', email: m.email, phone: m.phone, type: RTYPE_OF[m.role] || 'coord' }); });
   const tg = $('team-groups');
   function group(title, sub, node){ const g=document.createElement('div'); g.className='tgroup'; const h=document.createElement('h3'); h.textContent=title; if (sub){ const s=document.createElement('small'); s.textContent=sub; h.append(s); } g.append(h, node); tg.append(g); }
   // leadership
@@ -190,6 +203,7 @@ window.TREX_START = function(PKG){
   const sitesMap = {};
   TEAM.filter(r=>r.type==='inv'||r.type==='coord'||r.type==='admin').forEach(r=>{ (sitesMap[r.site||'Other'] ||= []).push(r); });
   TEAM.filter(r=>r.type==='lead' && r.sitePI).forEach(r=>{ (sitesMap[r.sitePI] ||= []).push(Object.assign({}, r, {type:'inv', role:'Site PI', _lead:r.role})); });
+  (D.sites||[]).forEach(s=>{ const nz=(v)=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); const k=Object.keys(sitesMap).find(x=>nz(x)===nz(s.name)); if (!k) sitesMap[s.name]=[]; });
   const RANK = { inv:0, coord:1, admin:2 };
   Object.keys(sitesMap).sort().forEach(site=>{
     const c=document.createElement('div'); c.className='sitecard';
@@ -197,6 +211,8 @@ window.TREX_START = function(PKG){
     const nrm=(v)=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); const ctry = (D.sites||[]).find(s=>nrm(s.name)===nrm(site.split(' (')[0])); sp.textContent = ctry ? ctry.country : (sitesMap[site][0].country||'');
     hd.append(b, sp); c.append(hd);
     const RO={'Site PI':0,'Local co-PI':1,'Investigator':2}; sitesMap[site].sort((x,y)=> (RANK[x.type]-RANK[y.type]) || ((RO[x.role]??5)-(RO[y.role]??5)) || byLast(x,y)).forEach(r=>c.append(person(r,true)));
+    if (!sitesMap[site].length){ const e=document.createElement('div'); e.className='tempty'; e.textContent='No team members listed yet.'; c.append(e); }
+    const add=document.createElement('button'); add.type='button'; add.className='btn ghost small addm'; add.textContent='+ Add team member'; add.addEventListener('click', ()=>openForm(L.teamForm, 'Add a team member · '+site, {Site: site})); c.append(add);
     siteGrid.append(c);
   });
   group('Site teams', 'site PIs, investigators, coordinators and administration per centre', siteGrid);
@@ -545,7 +561,7 @@ window.TREX_START = function(PKG){
     const h3=document.createElement('h3'); h3.className='dsech'; h3.textContent='General'; gen.append(h3); g.append(gen);
     const genDocs = DOCS.filter(isGen);
     const prot = genDocs.filter(d=>d.type==='Protocol'), dsmb = genDocs.filter(d=>d.type==='DSMB charter'), rest = genDocs.filter(d=>d.type!=='Protocol' && d.type!=='DSMB charter');
-    docGroup(gen, 'Protocol', 'current version and amendments', prot.sort(sortD), (L.protocol && !prot.some(d=>!d.old)) ? [linkRow('T-REX protocol', 'current version and amendments, in the shared folder', L.protocol, 'OneDrive')] : []);
+    docGroup(gen, 'Protocol', 'current version and amendments', prot.sort(sortD), (L.protocol && !prot.some(d=>!d.old)) ? [linkRow('T-REX protocol v1.2', 'current version, in the shared folder', L.protocol, 'OneDrive')] : []);
     docGroup(gen, 'DSMB charter', 'Data and Safety Monitoring Board', dsmb.sort(sortD), (!dsmb.some(d=>!d.old)) ? [linkRow('DSMB charter', 'will be added once approved', L.dsmb||'', '')] : []);
     if (rest.length) docGroup(gen, 'Other general documents', '', rest.sort(sortD));
   }

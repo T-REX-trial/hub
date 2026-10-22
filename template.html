@@ -425,6 +425,14 @@ body:not(.locked) .login{display:none}
 .dsech{font-size:20px;padding-bottom:8px;border-bottom:2px solid var(--teal)}
 .dsec + .dsec{margin-top:14px}
 .doc a.btn{color:var(--on-teal)}
+.formdlg{border:0;border-radius:18px;padding:20px;width:min(760px,calc(100vw - 32px));max-height:calc(100dvh - 40px);background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.formdlg[open]{display:flex;flex-direction:column;gap:12px}
+.formdlg::backdrop{background:rgba(6,33,31,.55)}
+.fdhead{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.fdhead h2{font-size:19px}
+.formdlg iframe{width:100%;height:min(820px,calc(100dvh - 170px));border:1px solid var(--line);border-radius:12px;background:#fff}
+.tempty{font-size:13px;color:var(--muted);padding:2px 0 2px 12px}
+.addm{align-self:flex-start;margin-top:2px}
 </style>
 </head>
 <body class="locked">
@@ -682,7 +690,7 @@ body:not(.locked) .login{display:none}
 <div class="panel" id="contacts" role="tabpanel" aria-labelledby="tab-contacts" hidden>
   <section class="card" id="team">
     <div class="shead">
-      <div><h2>Team</h2><p>Who is who in T-REX, grouped by role and site. Click an address to write an e-mail.</p></div>
+      <div><h2>Team</h2><p>Who is who in T-REX, grouped by role and site. Click an address to write an e-mail. Missing someone? Use "Add team member" on your site's card.</p></div>
     </div>
     <div class="rolelegend" id="role-legend" aria-label="Role colours"></div>
     <div id="team-groups" class="tgroups"></div>
@@ -698,6 +706,12 @@ body:not(.locked) .login{display:none}
 
 </main>
 <div class="tip" id="tip" role="tooltip" hidden></div>
+<dialog class="formdlg" id="formdlg" aria-labelledby="formdlg-title">
+  <div class="fdhead"><h2 id="formdlg-title">Form</h2><button type="button" class="btn ghost small" id="formdlg-close">Close</button></div>
+  <p class="hint" style="margin:0">New entries appear on the hub within an hour, after the next automatic update.</p>
+  <div class="empty" id="formdlg-msg" hidden></div>
+  <iframe id="formdlg-frame" title="Form"></iframe>
+</dialog>
 
 <footer>
   <div class="wrap">
