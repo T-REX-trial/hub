@@ -381,7 +381,7 @@ window.TREX_START = function(PKG){
       const nv2 = r.next ? nextVisit(r) : null;
       const comp=document.createElement('div'); comp.className='comp';
       const list = nv2 ? (nv2.m!=null ? ((SCHED[r.arm]||{})[nv2.m] || null) : null) : null;
-      if (list){ list.forEach(k=>{ const it=ITEMS.find(x=>x[0]===k); const s=document.createElement('span'); s.textContent=SHORT[k]||it[1]; if (['colo','mri','pct','ct','lars','qol','tox'].includes(k)) s.className='k'; comp.append(s); }); }
+      if (list){ list.forEach(k=>{ const it=ITEMS.find(x=>x[0]===k); const s=document.createElement('span'); s.textContent=SHORT[k]||it[1]; if (['colo','mri','pct','ct','lars','qol','tox'].includes(k)) s.className='key'; comp.append(s); }); }
       else comp.textContent = nv2 ? (nv2.m==null ? (typeShort(nv2)||'Additional visit') : 'Not in protocol schedule') : '–';
       add(comp);
       if (nv2){ attachTip(tr, r, nv2, ()=>openBooking(r, nv2)); tr.tabIndex = 0; tr.addEventListener('keydown', (ev)=>{ if (ev.key==='Enter' && ev.target===tr) openBooking(r, nv2); }); }

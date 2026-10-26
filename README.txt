@@ -1,6 +1,7 @@
-T-REX hub, update 13 (26 Oct 2026)
+T-REX hub, update 14 (26 Oct 2026)
 
 Co nowego
+- naprawione wyświetlanie badań w kolumnie "At this visit" (Pelvic MRI itp.)
 - wizyta jest "booked" tylko gdy data różni się od wyliczonej albo została umówiona przez stronę
 - ekran logowania: przy złym haśle pokazuje kontakt do koordynatorki zamiast podpowiedzi o nazwie kraju
 - Follow-up: kliknięcie pacjenta otwiera umawianie wizyty (data, godzina, typ wizyty, lista badań przed wizytą lub w dniu wizyty)
