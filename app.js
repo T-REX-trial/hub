@@ -705,7 +705,7 @@ window.TREX_START = function(PKG){
     $('fu-state').textContent = 'Updated ' + fmtT(t);
     $('g-note').textContent = 'From Airtable · updated ' + fmtT(t);
   } else { $('fu-state').textContent = 'No data yet'; $('fu-state').className='pill p-neutral'; $('g-note').textContent = 'Waiting for the first automatic update.'; }
-  $('fu-foot').textContent = 'Bookings are saved in Airtable (Visits table). The page is rebuilt automatically, so other people see new bookings after the next update.';
+  $('fu-foot').hidden = true;
   $('f-upd').textContent = D.updated ? fmt(new Date(D.updated)) : '';
   if (!ALLV){ const fp=document.querySelector('#followup .shead p'); if (fp) fp.textContent = 'Every randomised participant at the ' + WHO + ' sites with their next follow-up date. Dashed dates are estimated from randomisation; click a participant to book the visit or change the date.'; }
 };

@@ -1,6 +1,7 @@
-T-REX hub, update 16 (26 Oct 2026)
+T-REX hub, update 17 (26 Oct 2026)
 
 Co nowego
+- usunięty tekst pod listą Follow-up i sekcja "Queries and corrections" w instrukcji Ledidi
 - Team & links: link do ClinicalTrials.gov (NCT07669298)
 - wersja mobilna: menu na dole ekranu, pacjenci jako karty, okna na pełny ekran
 - zawsze jasne tło; prostszy układ (nagłówek tylko na Overview, ośrodki: mapa + lista w jednej sekcji, Updates ukryte gdy puste)
