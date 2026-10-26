@@ -1,6 +1,7 @@
-T-REX hub, update 17 (26 Oct 2026)
+T-REX hub, update 18 (26 Oct 2026)
 
 Co nowego
+- Gdańsk: jako lead tylko P. Spychalski
 - usunięty tekst pod listą Follow-up i sekcja "Queries and corrections" w instrukcji Ledidi
 - Team & links: link do ClinicalTrials.gov (NCT07669298)
 - wersja mobilna: menu na dole ekranu, pacjenci jako karty, okna na pełny ekran
