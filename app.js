@@ -101,7 +101,7 @@ window.TREX_START = function(PKG){
   });
   const LGROUPS = [
     ['Daily work', [['edc','Ledidi eCRF','personal account'],['form','Randomisation form','Airtable']]],
-    ['Documents', [['protocol','Protocol','v1.2'],['drive','T-REX shared folder','OneDrive'],['isf','Investigator Site File','templates']]],
+    ['Documents', [['ctgov','ClinicalTrials.gov','NCT07669298'],['protocol','Protocol','v1.2'],['drive','T-REX shared folder','OneDrive'],['isf','Investigator Site File','templates']]],
     ['Identity', [['brand','Logo and slide templates','T-REX visual identity']]]
   ];
   const lg = $('link-groups');
