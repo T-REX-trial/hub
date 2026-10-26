@@ -246,8 +246,10 @@ window.TREX_START = function(PKG){
       const randIso = cellText(c[F.rand]) || r.createdTime || '';
       return { pid: cellText(c[F.pid]), site: cellText(c[F.site]), country: r.country || cellText(c[F.country]), arm: armOf(c),
         rand: randIso ? new Date(randIso) : null, status: cellText(c[F.status]), next: parseDMY(cellText(c[F.next])),
-        visits: MV.map(([m,est,act])=>{ const a = parseDMY(cellText(c[act])); const e = parseDMY(cellText(c[est])); const d = a || e; return d ? {m, date:d, kind: a ? (a < startOfToday() ? 'done' : 'booked') : 'est'} : null; }).filter(Boolean) };
+        visits: MV.map(([m,est,act])=>{ const a = parseDMY(cellText(c[act])); const e = parseDMY(cellText(c[est])); const d = a || e; return d ? {m, key:'M'+m, label:'M'+m, date:d, kind: a ? (a < startOfToday() ? 'done' : 'booked') : 'est', types:['FUP with physician'], time:'', other:''} : null; }).filter(Boolean) };
     });
+    AT.rows.forEach(r=>{ r.base = r.visits.map(v=>Object.assign({}, v)); r.baseNext = r.next; });
+    applyBookings();
     AT.bySite = {};
     let as=0, crt=0, total=0;
     const TOT = (PKG.at && PKG.at.totals) || null;
@@ -266,6 +268,33 @@ window.TREX_START = function(PKG){
     renderSites(); renderFollowUp(); renderCalendar();
   }
   function startOfToday(){ const t = new Date(); t.setHours(0,0,0,0); return t; }
+
+  /* ---------- Booked visits (Airtable "Visits" table + this browser's just-saved bookings) ---------- */
+  const PKEY = 'trex-pending-visits';
+  const loadPending = ()=>{ try { return JSON.parse(localStorage.getItem(PKEY)||'[]'); } catch(_){ return []; } };
+  const savePending = (a)=>{ try { localStorage.setItem(PKEY, JSON.stringify(a)); } catch(_){} };
+  function applyBookings(){
+    const fetched = (PKG.at && PKG.at.fetchedAt) ? Date.parse(PKG.at.fetchedAt) : 0;
+    const pend = loadPending().filter(x=> x.ts > fetched); savePending(pend);
+    const list = [...(((PKG.at||{}).visits)||[]).map(v=>Object.assign({ts: Date.parse(v.created)||0}, v)), ...pend.map(x=>Object.assign({}, x, {pending:true}))].sort((a,b)=>a.ts-b.ts);
+    const t0 = startOfToday();
+    AT.rows.forEach(r=>{ r.visits = r.base.map(v=>Object.assign({}, v)); r.next = r.baseNext; r.touched = false; });
+    const latest = new Map();
+    list.forEach(b=>{ const k = String(b.pid).trim() + '|' + (/^M\d+$/.test(b.visit||'') ? b.visit : 'X|' + (b.id || b.ts)); latest.set(k, b); });
+    latest.forEach(b=>{
+      const r = AT.rows.find(x=> String(x.pid).trim()===String(b.pid).trim()); if (!r) return;
+      const d = parseDMY(b.date); if (!d) return;
+      const mm = /^M(\d+)$/.exec(b.visit||'');
+      r.touched = true;
+      if (b.status==='Cancelled') return;
+      const info = { date:d, kind: d < t0 ? 'done' : 'booked', types: (b.types&&b.types.length) ? b.types : ['FUP with physician'], time: b.time||'', other: b.other||'', pending: !!b.pending, booked: true };
+      if (mm){ const m=+mm[1]; let v = r.visits.find(x=>x.m===m); if (!v){ v = {m, key:'M'+m, label:'M'+m}; r.visits.push(v); } Object.assign(v, info); }
+      else r.visits.push(Object.assign({m:null, key:'X|'+(b.id||b.ts), label:'Additional visit', extra:true}, info, {types: b.types||[]}));
+    });
+    AT.rows.forEach(r=>{ if (r.touched){ const fut = r.visits.filter(v=>v.date>=t0).sort((a,b)=>a.date-b.date)[0]; r.next = fut ? fut.date : r.baseNext; } });
+  }
+  const typeShort = (v)=> (v.types||[]).filter(t=>t!=='FUP with physician').map(t=> t==='Other' && v.other ? v.other : t).join(', ');
+  const vLabel = (v)=> v.m!=null ? 'M'+v.m : (typeShort(v) || 'Visit');
 
   /* ---------- Site calendars ---------- */
   const cal = { site: null, month: (()=>{ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })() };
@@ -300,10 +329,16 @@ window.TREX_START = function(PKG){
     const start = new Date(y, mo, 1-lead);
     const weeks = Math.ceil((lead + new Date(y, mo+1, 0).getDate())/7);
     const todayKey = ymd(new Date());
-    const evEl = (e)=>{ const el=document.createElement('button'); el.type='button'; el.className='ev '+e.v.kind; attachTip(el, e.r, e.v); const dot=document.createElement('i'); dot.className='dot '+(e.r.arm==='AS'?'as':'crt'); el.append(dot, document.createTextNode('PID ' + (e.r.pid||'?') + ' · M' + e.v.m + (cal.site===''&&e.r.site?' · '+e.r.site:''))); el.setAttribute('aria-label', 'PID ' + e.r.pid + ', month ' + e.v.m + ' follow-up, ' + (e.v.kind==='est'?'estimated':e.v.kind==='booked'?'date entered':'past entered date') + (e.r.site?', '+e.r.site:'')); return el; };
+    const evEl = (e)=>{ const el=document.createElement('button'); el.type='button'; el.className='ev '+e.v.kind+(e.v.pending?' pend':''); attachTip(el, e.r, e.v, ()=>openBooking(e.r, e.v)); const dot=document.createElement('i'); dot.className='dot '+(e.r.arm==='AS'?'as':'crt'); el.append(dot, document.createTextNode('PID ' + (e.r.pid||'?') + ' · ' + vLabel(e.v) + (e.v.time?' '+e.v.time:'') + (cal.site===''&&e.r.site?' · '+e.r.site:''))); el.setAttribute('aria-label', 'PID ' + e.r.pid + ', ' + (e.v.m!=null?'month '+e.v.m+' follow-up':'additional visit') + ', ' + (e.v.kind==='est'?'estimated date':e.v.kind==='booked'?'booked':'past visit') + (e.r.site?', '+e.r.site:'') + '. Press to book or change.');
+      if (e.v.kind!=='done'){ el.draggable = true; el.addEventListener('dragstart', (ev)=>{ hideTip(); DRAG = e; ev.dataTransfer.effectAllowed='move'; try{ ev.dataTransfer.setData('text/plain', e.r.pid+'|'+e.v.key); }catch(_){} el.classList.add('dragging'); }); el.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); document.querySelectorAll('.day.drop').forEach(x=>x.classList.remove('drop')); }); }
+      return el; };
     for (let i=0;i<weeks*7;i++){
       const d = new Date(start.getFullYear(), start.getMonth(), start.getDate()+i);
       const cell=document.createElement('div'); cell.className='day' + (d.getMonth()!==mo?' out':'') + (ymd(d)===todayKey?' today':'');
+      const dk = ymd(d);
+      cell.addEventListener('dragover', (ev)=>{ if (!DRAG) return; ev.preventDefault(); ev.dataTransfer.dropEffect='move'; cell.classList.add('drop'); });
+      cell.addEventListener('dragleave', ()=> cell.classList.remove('drop'));
+      cell.addEventListener('drop', (ev)=>{ ev.preventDefault(); cell.classList.remove('drop'); const e = DRAG; DRAG = null; if (e && dk!==ymd(e.v.date)) openBooking(e.r, e.v, dk); });
       const dn=document.createElement('span'); dn.className='dn num'; dn.textContent=d.getDate(); cell.append(dn);
       const evs = d.getMonth()===mo ? (byDay[ymd(d)]||[]) : [];
       evs.slice(0,3).forEach(e=>cell.append(evEl(e)));
@@ -314,6 +349,7 @@ window.TREX_START = function(PKG){
     if (!keys.length){ const p=document.createElement('div'); p.className='hint'; p.textContent='No follow-up visits this month.'; agenda.append(p); }
     keys.forEach(k=> byDay[k].forEach(e=>{ const row=document.createElement('div'); row.className='ag'; const b=document.createElement('b'); b.className='num'; b.textContent=fmt(e.v.date).slice(0,6); row.append(b, evEl(e)); agenda.append(row); }));
   }
+  let DRAG = null;
   $('cal-prev').addEventListener('click', ()=>{ cal.month = new Date(cal.month.getFullYear(), cal.month.getMonth()-1, 1); renderCalendar(); });
   $('cal-next').addEventListener('click', ()=>{ cal.month = new Date(cal.month.getFullYear(), cal.month.getMonth()+1, 1); renderCalendar(); });
   $('cal-today').addEventListener('click', ()=>{ const d=new Date(); cal.month = new Date(d.getFullYear(), d.getMonth(), 1); renderCalendar(); });
@@ -340,15 +376,16 @@ window.TREX_START = function(PKG){
       const p=document.createElement('span'); p.className='pill ' + (r.arm==='AS'?'p-as':r.arm==='CRT'?'p-crt':'p-neutral'); p.textContent = r.arm==='AS'?'Surveillance':r.arm==='CRT'?'CRT':'–'; add(p);
       add(r.rand ? fmt(r.rand) : '–', 'num');
       add(r.status || '–');
-      if (r.next){ const nv = nextVisit(r); const w=document.createElement('span'); w.style.cssText='display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap'; w.append(document.createTextNode(fmt(r.next))); if (nv){ const b=document.createElement('button'); b.type='button'; b.className='vbtn'; b.textContent='M'+nv.m; b.setAttribute('aria-label','Month '+nv.m+' visit: show assessments'); attachTip(b, r, nv); w.append(b); } add(w,'num'); } else add('–','num');
+      if (r.next){ const nv = nextVisit(r); const w=document.createElement('span'); w.style.cssText='display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap'; w.append(document.createTextNode(fmt(r.next))); if (nv){ const b=document.createElement('button'); b.type='button'; b.className='vbtn'; b.textContent='M'+nv.m; b.textContent=vLabel(nv); b.setAttribute('aria-label', vLabel(nv)+' visit: book or change the date'); attachTip(b, r, nv, ()=>openBooking(r, nv)); w.append(b); const st=document.createElement('span'); st.className='bk '+(nv.kind==='est'?'est':'ok'); st.textContent = nv.kind==='est' ? 'estimated' : nv.pending ? 'booked · syncing' : 'booked'; w.append(st); } add(w,'num'); } else add('–','num');
       add(dd===null ? '–' : dd<0 ? Math.abs(dd)+' d ago' : dd===0 ? 'today' : dd+' d', 'num');
       const nv2 = r.next ? nextVisit(r) : null;
       const comp=document.createElement('div'); comp.className='comp';
-      const list = nv2 ? ((SCHED[r.arm]||{})[nv2.m] || null) : null;
+      const list = nv2 ? (nv2.m!=null ? ((SCHED[r.arm]||{})[nv2.m] || null) : null) : null;
       if (list){ list.forEach(k=>{ const it=ITEMS.find(x=>x[0]===k); const s=document.createElement('span'); s.textContent=SHORT[k]||it[1]; if (['colo','mri','pct','ct','lars','qol','tox'].includes(k)) s.className='k'; comp.append(s); }); }
-      else comp.textContent = nv2 ? 'Not in protocol schedule' : '–';
+      else comp.textContent = nv2 ? (nv2.m==null ? (typeShort(nv2)||'Additional visit') : 'Not in protocol schedule') : '–';
       add(comp);
-      if (nv2){ attachTip(tr, r, nv2); tr.tabIndex = 0; }
+      if (nv2){ attachTip(tr, r, nv2, ()=>openBooking(r, nv2)); tr.tabIndex = 0; tr.addEventListener('keydown', (ev)=>{ if (ev.key==='Enter' && ev.target===tr) openBooking(r, nv2); }); }
+      else { tr.style.cursor='pointer'; tr.addEventListener('click', ()=>openBooking(r, null)); }
       body.append(tr);
     });
   }
@@ -397,12 +434,15 @@ window.TREX_START = function(PKG){
   function showTip(el, r, v){
     tipArgs=[el,r,v];
     const arm = r.arm || '';
-    const list = (SCHED[arm]||{})[v.m];
+    const list = v.m!=null ? (SCHED[arm]||{})[v.m] : null;
     tip.textContent='';
-    const b=document.createElement('b'); b.textContent = 'PID ' + (r.pid||'?') + ' · Month ' + v.m;
-    const sub=document.createElement('span'); sub.className='sub'; sub.textContent = (arm==='AS'?'Active surveillance':arm==='CRT'?'Chemoradiotherapy':'Arm unknown') + ' · ' + fmt(v.date) + ' · ' + (v.kind==='est'?'estimated':v.kind==='booked'?'date entered':'past entered date') + (r.site?' · '+r.site:'');
+    const b=document.createElement('b'); b.textContent = 'PID ' + (r.pid||'?') + ' · ' + (v.m!=null ? 'Month ' + v.m : 'Additional visit');
+    const sub=document.createElement('span'); sub.className='sub'; sub.textContent = (arm==='AS'?'Active surveillance':arm==='CRT'?'Chemoradiotherapy':'Arm unknown') + ' · ' + fmt(v.date) + (v.time?' '+v.time:'') + ' · ' + (v.kind==='est'?'estimated, not booked':v.kind==='booked'?(v.pending?'booked (syncing)':'booked'):'past visit') + (r.site?' · '+r.site:'');
     tip.append(b, sub);
-    if (list){
+    const ty=document.createElement('span'); ty.className='sub'; ty.textContent = 'Visit: ' + ((v.types||[]).map(t=> t==='Other' && v.other ? 'Other ('+v.other+')' : t).join(', ') || 'FUP with physician'); tip.append(ty);
+    if (list){ const h=document.createElement('span'); h.className='sub'; h.style.marginTop='4px'; h.textContent='Before or on the day of the visit:'; tip.append(h); }
+    if (v.m==null){ const p=document.createElement('span'); p.textContent='Click to change or open the booking.'; tip.append(p); }
+    else if (list){
       const ul=document.createElement('ul');
       list.forEach(k=>{ const it=ITEMS.find(x=>x[0]===k); const li=document.createElement('li'); const n=document.createElement('span'); n.textContent=it[1]; const c=document.createElement('i'); c.textContent=it[2]; li.append(n,c); ul.append(li); });
       tip.append(ul);
@@ -417,13 +457,94 @@ window.TREX_START = function(PKG){
     el.setAttribute('aria-describedby','tip');
   }
   function hideTip(){ tip.hidden=true; if (tipFor) tipFor.removeAttribute('aria-describedby'); tipFor=null; }
-  function attachTip(el, r, v){
+  function attachTip(el, r, v, onOpen){
     el.addEventListener('mouseenter', ()=>showTip(el,r,v));
     el.addEventListener('mouseleave', hideTip);
     el.addEventListener('focus', ()=>showTip(el,r,v));
     el.addEventListener('blur', hideTip);
-    el.addEventListener('click', (e)=>{ e.stopPropagation(); if (tipFor===el && !tip.hidden) hideTip(); else showTip(el,r,v); });
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); hideTip(); if (onOpen) onOpen(); else showTip(el,r,v); });
   }
+
+  /* ---------- Booking dialog ---------- */
+  const VTYPES = ['FUP with physician','MRI','CT','Labs','Rectoscopy','Colonoscopy','Other'];
+  const bk = { r:null, v:null, draft:null };
+  const siteName = (raw)=>{ const s=(D.sites||[]).find(x=>norm(x.name)===norm(raw)); return s ? s.name : (raw||''); };
+  (function(){ const box=$('bk-types'); VTYPES.forEach(t=>{ const l=document.createElement('label'); l.className='chkrow'; const i=document.createElement('input'); i.type='checkbox'; i.value=t; i.addEventListener('change', ()=>{ $('bk-other-box').hidden = !box.querySelector('input[value="Other"]').checked; }); l.append(i, document.createTextNode(' '+t)); box.append(l); }); })();
+  function visitOptions(r){
+    const sel=$('bk-visit'); sel.textContent='';
+    const ms = new Set(Object.keys((SCHED[r&&r.arm]||SCHED.AS)).filter(k=>k!=='post').map(Number)); (r?r.visits:[]).forEach(v=>{ if (v.m!=null) ms.add(v.m); });
+    [...ms].sort((a,b)=>a-b).forEach(m=>{ const o=document.createElement('option'); o.value='M'+m; const v = r && r.visits.find(x=>x.m===m); o.textContent='M'+m + (v ? ' · ' + fmt(v.date) + (v.kind==='est'?' (estimated)':v.kind==='booked'?' (booked)':' (past)') : ''); sel.append(o); });
+    const o=document.createElement('option'); o.value='Additional visit'; o.textContent='Additional visit (not in the schedule)'; sel.append(o);
+  }
+  function fillFromVisit(keepDate){
+    const r=bk.r, key=$('bk-visit').value; const mm=/^M(\d+)$/.exec(key);
+    const v = r ? (mm ? r.visits.find(x=>x.m===+mm[1]) : (bk.v && bk.v.extra ? bk.v : null)) : null;
+    bk.v = v || null;
+    if (!keepDate) $('bk-date').value = v ? ymd(v.date) : ymd(new Date());
+    $('bk-time').value = v && v.time ? v.time : '';
+    const types = v && v.types && v.types.length ? v.types : (mm ? ['FUP with physician'] : []);
+    document.querySelectorAll('#bk-types input').forEach(i=> i.checked = types.includes(i.value));
+    $('bk-other').value = v && v.other ? v.other : ''; $('bk-other-box').hidden = !types.includes('Other');
+    $('bk-cancelb').hidden = !(v && v.booked && v.kind!=='done');
+    const t=$('bk-tests'); t.textContent='';
+    const list = mm && r ? (SCHED[r.arm]||{})[+mm[1]] : null;
+    if (list){ const h=document.createElement('strong'); h.textContent='Tests the patient should have before or on the day of this visit'; t.append(h); const ul=document.createElement('ul'); list.forEach(k=>{ const it=ITEMS.find(x=>x[0]===k); const li=document.createElement('li'); li.textContent=it[1]; const c=document.createElement('i'); c.textContent=' · '+it[2]; li.append(c); ul.append(li); }); t.append(ul); }
+    else if (mm && r && !r.arm) t.textContent='Arm not available, so the protocol tests cannot be shown.';
+    else if (!mm) t.textContent='Additional visit: choose what it is for (MRI, CT, labs, rectoscopy, colonoscopy, FUP with physician or other).';
+    t.hidden = !t.textContent;
+    $('bk-title').textContent = r ? 'PID ' + r.pid + ' · ' + (mm ? key + ' follow-up' : 'Additional visit') : 'Add a visit';
+    $('bk-sub').textContent = r ? (siteName(r.site) + ' · ' + (r.arm==='AS'?'Active surveillance':r.arm==='CRT'?'Chemoradiotherapy':'arm unknown') + (v ? ' · currently ' + fmt(v.date) + (v.kind==='est'?' (estimated from randomisation)':v.kind==='booked'?' (booked)':'') : '')) : '';
+  }
+  function openBooking(r, v, date){
+    hideTip();
+    bk.r = r; bk.v = v || null;
+    const ps=$('bk-pid'); ps.textContent='';
+    AT.rows.slice().sort((a,b)=>(parseFloat(a.pid)||0)-(parseFloat(b.pid)||0)).forEach(x=>{ const o=document.createElement('option'); o.value=x.pid; o.textContent='PID '+x.pid+(x.site?' · '+x.site:''); ps.append(o); });
+    $('bk-pid-box').hidden = !!r;
+    if (!r){ if (!AT.rows.length){ toast('No participants yet.'); return; } bk.r = AT.rows.find(x=>x.pid===ps.value) || AT.rows[0]; }
+    ps.value = bk.r.pid;
+    visitOptions(bk.r);
+    $('bk-visit').value = v ? (v.m!=null ? 'M'+v.m : 'Additional visit') : (r ? ((nextVisit(r)||{}).m!=null ? 'M'+nextVisit(r).m : 'Additional visit') : 'Additional visit');
+    if (!v && r){ const nv=nextVisit(r); if (nv && nv.m!=null) bk.v=nv; }
+    fillFromVisit(false);
+    if (date) $('bk-date').value = date;
+    $('bk-step1').hidden=false; $('bk-step2').hidden=true; $('bk-frame').src='about:blank';
+    $('bkdlg').showModal();
+  }
+  $('bk-pid').addEventListener('change', ()=>{ bk.r = AT.rows.find(x=>x.pid===$('bk-pid').value); bk.v=null; visitOptions(bk.r); $('bk-visit').value='Additional visit'; fillFromVisit(false); });
+  $('bk-visit').addEventListener('change', ()=>fillFromVisit(false));
+  function toForm(status){
+    const r=bk.r; if (!r) return;
+    const date=$('bk-date').value; if (!date){ $('bk-date').focus(); return; }
+    const types=[...document.querySelectorAll('#bk-types input:checked')].map(i=>i.value);
+    if (!types.length){ toast('Choose at least one visit type.'); return; }
+    const visit=$('bk-visit').value;
+    bk.draft = { pid:String(r.pid), site:siteName(r.site), visit, date, time:$('bk-time').value, types, other: types.includes('Other') ? $('bk-other').value.trim() : '', status };
+    const u = formEmbed(L.visitForm);
+    $('bk-step1').hidden=true; $('bk-step2').hidden=false;
+    $('bk-step2-title').textContent = status==='Cancelled' ? 'Confirm cancellation' : 'Confirm booking';
+    $('bk-summary').textContent = 'PID ' + r.pid + ' · ' + (visit==='Additional visit'?'Additional visit':visit) + ' · ' + fmt(new Date(date+'T12:00:00')) + (bk.draft.time?' '+bk.draft.time:'') + ' · ' + types.map(t=>t==='Other'&&bk.draft.other?'Other ('+bk.draft.other+')':t).join(', ') + (status==='Cancelled'?' · CANCEL':'');
+    if (!u){ $('bk-frame').hidden=true; $('bk-nofm').hidden=false; return; }
+    $('bk-frame').hidden=false; $('bk-nofm').hidden=true;
+    const P = { 'PID':bk.draft.pid, 'Site':bk.draft.site, 'Visit':visit, 'Date':date, 'Time':bk.draft.time, 'Visit type':types.join(','), 'Other (details)':bk.draft.other, 'Status':status };
+    let q = '?backgroundColor=teal'; Object.entries(P).forEach(([k,v])=>{ if (v) q += '&prefill_'+encodeURIComponent(k)+'='+encodeURIComponent(v); q += '&hide_'+encodeURIComponent(k)+'=true'; });
+    $('bk-frame').src = u + q;
+  }
+  $('bk-next').addEventListener('click', ()=>toForm('Booked'));
+  $('bk-cancelb').addEventListener('click', ()=>toForm('Cancelled'));
+  $('bk-back').addEventListener('click', ()=>{ $('bk-step1').hidden=false; $('bk-step2').hidden=true; $('bk-frame').src='about:blank'; });
+  $('bk-close').addEventListener('click', ()=>{ $('bkdlg').close(); $('bk-frame').src='about:blank'; });
+  window.addEventListener('message', (e)=>{
+    if (e.origin!==location.origin || !e.data || e.data.type!=='trex-saved' || !bk.draft) return;
+    const p = loadPending(); p.push(Object.assign({}, bk.draft, {ts: Date.now(), id: e.data.record || ('p'+Date.now())})); savePending(p);
+    const was = bk.draft.status; bk.draft=null;
+    $('bkdlg').close(); $('bk-frame').src='about:blank';
+    applyBookings(); renderFollowUp(); renderCalendar(); renderRecruited();
+    toast(was==='Cancelled' ? 'Booking cancelled. Everyone sees the change after the next automatic update.' : 'Visit booked. It shows as booked here now; the rest of the team sees it after the next automatic update.');
+  });
+  function toast(t){ const el=$('toast'); el.textContent=t; el.hidden=false; clearTimeout(toast.h); toast.h=setTimeout(()=>el.hidden=true, 6000); }
+  $('fu-add').addEventListener('click', ()=>openBooking(null, null));
+  $('cal-add').addEventListener('click', ()=>openBooking(null, null));
   document.addEventListener('click', hideTip);
   document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') hideTip(); });
   let tipArgs=null;
@@ -584,7 +705,7 @@ window.TREX_START = function(PKG){
   } else { $('fu-state').textContent = 'No data yet'; $('fu-state').className='pill p-neutral'; $('g-note').textContent = 'Waiting for the first automatic update.'; }
   $('fu-foot').textContent = 'Record visits in Airtable (M… FUP date fields). This page is rebuilt automatically every hour.';
   $('f-upd').textContent = D.updated ? fmt(new Date(D.updated)) : '';
-  if (!ALLV){ const fp=document.querySelector('#followup .shead p'); if (fp) fp.textContent = 'Every randomised participant at the ' + WHO + ' sites with their next follow-up date, from Airtable, refreshed automatically every hour. Sorted by the nearest visit; hover over a row (or tap it) to see what is done at that visit.'; }
+  if (!ALLV){ const fp=document.querySelector('#followup .shead p'); if (fp) fp.textContent = 'Every randomised participant at the ' + WHO + ' sites with their next follow-up date. Dashed dates are estimated from randomisation; click a participant to book the visit or change the date.'; }
 };
 
 /* ---------- Sign-in: the password picks and decrypts one package ---------- */

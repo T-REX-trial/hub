@@ -21,6 +21,9 @@ BASE = "appUIdFlPDYSWeJ2A"
 TABLE = "tblj8GiDWb5NkGzlQ"
 DOCS_TABLE = "tblwxPH7Jba2zIf5f"
 TEAM_TABLE = "tblwFjHPu3Fn76OAD"
+VISITS_TABLE = "tblicuCpJpynLr3Bd"
+V = {"pid": "fldTmTmegoRmuOsnw", "site": "fldEfl7kAKIEhA7kR", "visit": "fldttl2qqk27y3dJW", "date": "fld6ej6pAdEiDSks3", "time": "fldvSdpLRIy8JIprb",
+     "types": "fldz5XQM6cARftuAG", "other": "fldCw0WvN95ADwNNB", "status": "fldU0ICeirtm2UmR7", "by": "fldFIMsH5pnRTuW1J", "notes": "flddHEMakosgp2mB9"}
 T = {"name": "fldMT2hR7QUg5dPNi", "role": "fldaCC7eqtVzg8Iwp", "site": "fld1dF1O0h8T9oI0L", "email": "fldo6CYAzVtynrVd6", "phone": "fld3xAdwhII04k3ls", "hide": "fldZWYPZMs5oAtmEG"}
 ITER = 250000
 FIELDS = [
@@ -92,7 +95,7 @@ def fetch_table(token, table, fields):
             with urllib.request.urlopen(req, timeout=60) as r:
                 page = json.load(r)
         except urllib.error.HTTPError as e:
-            if table in (DOCS_TABLE, TEAM_TABLE):
+            if table in (DOCS_TABLE, TEAM_TABLE, VISITS_TABLE):
                 print(f"Table {table} not readable ({e.code}); building without it.")
                 return []
             sys.exit(f"Airtable refused the request ({e.code}). Check that AIRTABLE_TOKEN has data.records:read on the T-REX randomisation base.")
@@ -124,11 +127,13 @@ def main():
         records = json.load(open(local))
         docs = json.load(open(os.environ["LOCAL_DOCS"])) if os.environ.get("LOCAL_DOCS") else []
         team = json.load(open(os.environ["LOCAL_TEAM"])) if os.environ.get("LOCAL_TEAM") else []
+        vis = json.load(open(os.environ["LOCAL_VISITS"])) if os.environ.get("LOCAL_VISITS") else []
     else:
         token = need("AIRTABLE_TOKEN")
         records = fetch_table(token, TABLE, FIELDS)
         docs = fetch_table(token, DOCS_TABLE, list(D.values()))
         team = fetch_table(token, TEAM_TABLE, list(T.values()))
+        vis = fetch_table(token, VISITS_TABLE, list(V.values()))
     added = []
     for t in team:
         f = t.get("fields", {})
@@ -137,6 +142,16 @@ def main():
         added.append({"name": text(f.get(T["name"])).strip(), "role": text(f.get(T["role"])), "site": text(f.get(T["site"])),
                       "email": text(f.get(T["email"])).strip(), "phone": text(f.get(T["phone"])).strip()})
     content["teamAdded"] = added
+    visits = []
+    for v in vis:
+        f = v.get("fields", {})
+        pid = text(f.get(V["pid"])).strip()
+        if not pid or not text(f.get(V["date"])):
+            continue
+        visits.append({"id": v.get("id"), "created": v.get("createdTime"), "pid": pid, "site": text(f.get(V["site"])),
+                       "visit": text(f.get(V["visit"])), "date": text(f.get(V["date"]))[:10], "time": text(f.get(V["time"])),
+                       "types": [text(x) for x in (f.get(V["types"]) or [])], "other": text(f.get(V["other"])),
+                       "status": text(f.get(V["status"])) or "Booked", "by": text(f.get(V["by"])), "notes": text(f.get(V["notes"]))})
     fetched = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     # country of every participant: from the site list, else the Airtable country field
@@ -211,9 +226,10 @@ def main():
     salt = secrets.token_bytes(16)
     for who, pw in audiences:
         mine = records if who == "all" else [r for r in records if r["country"] == who]
+        mine_vis = visits if who == "all" else [v for v in visits if site_country.get(norm(v["site"])) == who]
         pkg = {"who": who, "content": content,
                "at": {"records": [{"createdTime": r["createdTime"], "fields": r["fields"], "country": r["country"]} for r in mine],
-                      "fetchedAt": fetched, "totals": totals},
+                      "fetchedAt": fetched, "visits": mine_vis, "totals": totals},
                "docs": [d for d in doc_list if who == "all" or d["country"] in (who, ALL)],
                "countries": countries}
         key, ident = derive(pw, salt)
@@ -232,6 +248,9 @@ def main():
                .replace("__APP__", (SRC / "app.js").read_text("utf-8")))
     (site / "index.html").write_text(page, "utf-8")
     (site / "robots.txt").write_text("User-agent: *\nDisallow: /\n")
+    saved = SRC / "saved.html"
+    if saved.exists():
+        shutil.copy(saved, site / "saved.html")
     shutil.rmtree(work, ignore_errors=True)
     print(f"Built hub: {len(records)} participants, {len(doc_list)} document files, {len(audiences)} passwords ({', '.join(c for c, _ in audiences[1:])}).")
 

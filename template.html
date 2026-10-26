@@ -433,6 +433,26 @@ body:not(.locked) .login{display:none}
 .formdlg iframe{width:100%;height:min(820px,calc(100dvh - 170px));border:1px solid var(--line);border-radius:12px;background:#fff}
 .tempty{font-size:13px;color:var(--muted);padding:2px 0 2px 12px}
 .addm{align-self:flex-start;margin-top:2px}
+#bkdlg iframe{height:430px}
+.bkform{display:flex;flex-direction:column;gap:14px}
+.bktypes{border:1px solid var(--line);border-radius:12px;padding:10px 14px 12px;margin:0}
+.bktypes legend{font-size:13px;font-weight:600;color:var(--muted);padding:0 4px}
+.bkchecks{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:4px 12px}
+.bkchecks .chkrow{display:flex;gap:8px;align-items:center;font-weight:400;color:var(--ink);font-size:14px;min-height:34px;cursor:pointer}
+.bkchecks input{width:18px;height:18px;accent-color:var(--teal)}
+.bktests{background:var(--sprout);color:var(--sprout-ink);border-radius:12px;padding:12px 14px;font-size:14px}
+.bktests ul{margin:6px 0 0;padding-left:18px}
+.bktests i{font-style:normal;opacity:.7;font-size:12px}
+.bkact{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.bksum{font-weight:600;margin:0 0 4px}
+.bk{font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px}
+.bk.est{border:1px dashed var(--muted);color:var(--muted)} .bk.ok{background:var(--ok-bg);color:var(--ok)}
+.ev.pend{box-shadow:inset 0 0 0 1.5px var(--ok)}
+.ev[draggable="true"]{cursor:grab}
+.ev.dragging{opacity:.4}
+.calgrid .day.drop{background:var(--sprout);outline:2px dashed var(--teal);outline-offset:-3px}
+#fu-body tr{cursor:pointer}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;font-size:14px;max-width:min(560px,calc(100vw - 32px));box-shadow:0 10px 30px rgba(0,0,0,.3)}
 </style>
 </head>
 <body class="locked">
@@ -535,9 +555,10 @@ body:not(.locked) .login{display:none}
 <div class="panel" id="visits" role="tabpanel" aria-labelledby="tab-visits" hidden>
   <section class="card" id="followup">
     <div class="shead">
-      <div><h2>Follow-up</h2><p>Every randomised participant with their next follow-up date, from the Airtable "Patients" table, refreshed automatically every hour. Sorted by the nearest visit; hover over a row (or tap it) to see what is done at that visit.</p></div>
+      <div><h2>Follow-up</h2><p>Every randomised participant with their next follow-up date. Dashed dates are estimated from randomisation; click a participant to book the visit or change the date.</p></div>
       <div class="row" style="gap:8px">
         <span class="pill p-ok" id="fu-state">–</span>
+        <button type="button" class="btn small" id="fu-add">+ Add visit</button>
       </div>
     </div>
     <div class="fuchips" id="fu-chips"></div>
@@ -557,19 +578,20 @@ body:not(.locked) .login{display:none}
 
   <section class="card" id="calendars">
     <div class="shead">
-      <div><h2>Site calendars</h2><p>Follow-up visits per active site, from Airtable. A site is active when it is recruiting or already has randomised participants. Hover over or tap a visit to see its assessments.</p></div>
+      <div><h2>Site calendars</h2><p>Follow-up visits per active site. Drag a visit to another day to book it on that date, or click it to book, change or cancel. Hover to see the tests due before or on the day.</p></div>
       <div class="calnav">
         <button class="btn ghost small" type="button" id="cal-prev" aria-label="Previous month">‹</button>
         <strong class="num" id="cal-title">–</strong>
         <button class="btn ghost small" type="button" id="cal-next" aria-label="Next month">›</button>
         <button class="btn ghost small" type="button" id="cal-today">Today</button>
+        <button class="btn small" type="button" id="cal-add">+ Add visit</button>
       </div>
     </div>
     <div class="tabs" id="cal-tabs" role="group" aria-label="Choose site"></div>
     <div class="legend">
       <span><i class="ev est"></i>Estimated from randomisation date</span>
-      <span><i class="ev booked"></i>Date entered in Airtable</span>
-      <span><i class="ev done"></i>Past entered date</span>
+      <span><i class="ev booked"></i>Booked</span>
+      <span><i class="ev done"></i>Past visit</span>
       <span><i class="dot as"></i>Surveillance</span><span><i class="dot crt"></i>CRT</span>
     </div>
     <div class="calbox">
@@ -706,6 +728,32 @@ body:not(.locked) .login{display:none}
 
 </main>
 <div class="tip" id="tip" role="tooltip" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<dialog class="formdlg" id="bkdlg" aria-labelledby="bk-title">
+  <div class="fdhead"><div><h2 id="bk-title">Book visit</h2><p class="hint" id="bk-sub" style="margin:2px 0 0"></p></div><button type="button" class="btn ghost small" id="bk-close">Close</button></div>
+  <div id="bk-step1" class="bkform">
+    <div class="row">
+      <div class="field" id="bk-pid-box"><label for="bk-pid">Participant</label><select id="bk-pid"></select></div>
+      <div class="field"><label for="bk-visit">Visit</label><select id="bk-visit"></select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="bk-date">Date</label><input type="date" id="bk-date" required></div>
+      <div class="field"><label for="bk-time">Time (optional)</label><input type="time" id="bk-time"></div>
+    </div>
+    <fieldset class="bktypes"><legend>Visit type</legend><div id="bk-types" class="bkchecks"></div></fieldset>
+    <div class="field" id="bk-other-box" hidden><label for="bk-other">Other: what is it?</label><input type="text" id="bk-other" placeholder="e.g. dietitian, endoscopic ultrasound"></div>
+    <div class="bktests" id="bk-tests" hidden></div>
+    <div class="bkact"><button type="button" class="btn ghost" id="bk-cancelb" hidden>Cancel this booking</button><button type="button" class="btn" id="bk-next">Continue</button></div>
+  </div>
+  <div id="bk-step2" hidden>
+    <h3 id="bk-step2-title" style="margin:0 0 4px">Confirm booking</h3>
+    <p class="bksum" id="bk-summary"></p>
+    <p class="hint" style="margin:0 0 8px">Add your name and press <strong>Submit</strong> below to save it.</p>
+    <div class="empty" id="bk-nofm" hidden>The booking form is not connected yet. Contact the coordinating team.</div>
+    <iframe id="bk-frame" title="Confirm booking"></iframe>
+    <button type="button" class="btn ghost small" id="bk-back" style="margin-top:8px">‹ Back</button>
+  </div>
+</dialog>
 <dialog class="formdlg" id="formdlg" aria-labelledby="formdlg-title">
   <div class="fdhead"><h2 id="formdlg-title">Form</h2><button type="button" class="btn ghost small" id="formdlg-close">Close</button></div>
   <p class="hint" style="margin:0">New entries appear on the hub within an hour, after the next automatic update.</p>

@@ -1,14 +1,19 @@
-T-REX hub, update 10 (22 Oct 2026)
+T-REX hub, update 11 (22 Oct 2026)
 
 Co nowego
-- Documents: przycisk "Upload a document" otwiera formularz na stronie (kraj wpisuje się sam), pliki pojawiają się na stronie w ciągu godziny
-- Team & links: karta dla każdego ośrodka (także Lyon, Paris, Nantes, Nancy, Stockholm) z przyciskiem "+ Add team member" (imię i nazwisko, rola, e-mail, telefon)
-- link do protokołu v1.2
+- Follow-up: kliknięcie pacjenta otwiera umawianie wizyty (data, godzina, typ wizyty, lista badań przed wizytą lub w dniu wizyty)
+- Kalendarz: przeciągnij wizytę na inny dzień, żeby ją umówić na ten termin; kliknięcie = umów / zmień / odwołaj
+- "+ Add visit": dodatkowa wizyta (FUP with physician, MRI, CT, Labs, Rectoscopy, Colonoscopy, Other)
+- wizyty z Airtable domyślnie: FUP with physician
+- zapis: tabela "Visits" w Airtable (formularz "Book visit (hub)")
+- (z update 10) wgrywanie dokumentów i dodawanie członków zespołu, protokół v1.2
 
 Jak wgrać na GitHub
 1. github.com/kpolomska/T-REX-hub → Add file → Upload files
-2. Przeciągnij 5 plików: app.js, build.py, content.enc, seal.js, template.html
-3. Commit changes. Po 1–2 minutach strona jest zaktualizowana.
+2. Przeciągnij 6 plików: app.js, build.py, content.enc, saved.html, seal.js, template.html
+3. Commit changes.
 
-Usuwanie wpisów: w Airtable, tabela Documents → zaznacz "Superseded" (stara wersja) albo usuń wiersz;
-tabela Team members → zaznacz "Hide from hub".
+Opcjonalnie: szybsze odświeżanie (co 15 min zamiast co godzinę)
+1. W repozytorium otwórz .github/workflows/deploy.yml → ikona ołówka (Edit)
+2. Zmień linię   - cron: "17 * * * *"   na   - cron: "*/15 * * * *"
+3. Commit changes.
