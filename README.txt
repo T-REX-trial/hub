@@ -1,6 +1,8 @@
-T-REX hub, update 14 (26 Oct 2026)
+T-REX hub, update 15 (26 Oct 2026)
 
 Co nowego
+- wersja mobilna: menu na dole ekranu, pacjenci jako karty, okna na pełny ekran
+- zawsze jasne tło; prostszy układ (nagłówek tylko na Overview, ośrodki: mapa + lista w jednej sekcji, Updates ukryte gdy puste)
 - naprawione wyświetlanie badań w kolumnie "At this visit" (Pelvic MRI itp.)
 - wizyta jest "booked" tylko gdy data różni się od wyliczonej albo została umówiona przez stronę
 - ekran logowania: przy złym haśle pokazuje kontakt do koordynatorki zamiast podpowiedzi o nazwie kraju

@@ -22,6 +22,7 @@ window.TREX_START = function(PKG){
   const PANELS = ['overview','visits','instructions','documents','contacts'];
   function showTab(id, focus){
     if (!PANELS.includes(id)) id = 'overview';
+    document.body.dataset.tab = id;
     PANELS.forEach(p=>{ $(p).hidden = p!==id; const t=$('tab-'+p); t.setAttribute('aria-selected', String(p===id)); t.tabIndex = p===id ? 0 : -1; });
     try { localStorage.setItem('trex-tab', id); } catch(_){}
     if (focus) window.scrollTo({top:0});
@@ -119,7 +120,7 @@ window.TREX_START = function(PKG){
 
   /* ---------- Updates ---------- */
   const ul = $('upd-list'); const ups = D.updates || [];
-  if (!ups.length){ ul.innerHTML='<div class="empty">No announcements at the moment.</div>'; }
+  if (!ups.length){ $('updates').hidden = true; }
   ups.forEach(u=>{
     const row=document.createElement('div'); row.className='upd';
     const box=document.createElement('div'); box.style.flex='1'; box.style.minWidth='0';
@@ -134,14 +135,14 @@ window.TREX_START = function(PKG){
   let siteDocs = ALLV ? ALLSITES : ALLSITES.filter(d=>d.data().country===WHO);
   function renderSites(){
     const sb = $('sites-body'); sb.textContent='';
-    siteDocs.forEach(d=>{
-      const s=d.data(); const cnt = (typeof AT!=='undefined' && AT.bySite) ? AT.bySite[norm(s.name)] : null;
-      const tr=document.createElement('tr');
-      [s.name, s.country, s.lead].forEach((v,i)=>{ const td=document.createElement('td'); td.textContent=v||'–'; if(!i) td.style.fontWeight='600'; tr.append(td); });
-      const td=document.createElement('td'); const p=document.createElement('span'); p.className='pill '+statusPill(s.status); p.textContent=s.status||'To confirm'; td.append(p); tr.append(td);
-      const n=document.createElement('td'); n.className='num'; n.style.fontWeight='600'; n.textContent = cnt ? cnt.n : 0; tr.append(n);
-      const ac=document.createElement('td'); ac.className='num'; ac.textContent = cnt ? cnt.as+' · '+cnt.crt : '0 · 0'; tr.append(ac);
-      sb.append(tr);
+    ALLSITES.map(d=>d.data()).slice().sort((a,b)=> ((b.status==='Recruiting')-(a.status==='Recruiting')) || a.name.localeCompare(b.name)).forEach(s=>{
+      const cnt = (typeof AT!=='undefined' && AT.bySite) ? AT.bySite[norm(s.name)] : null;
+      const row=document.createElement('div'); row.className='srow'+(s.status==='Recruiting'?' on':''); row.setAttribute('role','listitem');
+      row.title = s.name + (s.lead ? ' · Lead: ' + s.lead : '') + (cnt ? ' · AS ' + cnt.as + ' · CRT ' + cnt.crt : '');
+      const l=document.createElement('div'); const b=document.createElement('b'); b.textContent=s.name; const sm=document.createElement('small'); sm.textContent=s.country + (s.lead ? ' · ' + s.lead : ''); l.append(b, sm);
+      const p=document.createElement('span'); p.className='pill '+statusPill(s.status); p.textContent=s.status||'To confirm';
+      const n=document.createElement('div'); n.className='n num'+((cnt&&cnt.n)?'':' z'); n.textContent = cnt ? cnt.n : 0; n.setAttribute('aria-label', (cnt?cnt.n:0)+' randomised');
+      row.append(l, p, n); sb.append(row);
     });
     $('g-sites').textContent = ALLSITES.filter(d=>d.data().status==='Recruiting').length;
     renderRecruited();
@@ -370,7 +371,8 @@ window.TREX_START = function(PKG){
       const tr=document.createElement('tr');
       const dd = r.next ? days(r.next) : null;
       if (dd!==null && dd<=14) tr.className='soon';
-      const add=(text, cls)=>{ const td=document.createElement('td'); if (cls) td.className=cls; if (text instanceof Node) td.append(text); else td.textContent=text; tr.append(td); };
+      const LBL=['PID','Site','Arm','Randomised','Status','Next follow-up','In','At this visit'];
+      const add=(text, cls)=>{ const td=document.createElement('td'); td.dataset.label = LBL[tr.children.length]; if (cls) td.className=cls; if (text instanceof Node) td.append(text); else td.textContent=text; tr.append(td); };
       add(r.pid || '–', 'num'); tr.lastChild.style.fontWeight='600';
       add(r.site || '–');
       const p=document.createElement('span'); p.className='pill ' + (r.arm==='AS'?'p-as':r.arm==='CRT'?'p-crt':'p-neutral'); p.textContent = r.arm==='AS'?'Surveillance':r.arm==='CRT'?'CRT':'–'; add(p);
@@ -574,7 +576,7 @@ window.TREX_START = function(PKG){
       const a1=document.createElement('span'); a1.className='pill p-as'; a1.textContent='Surveillance '+s.rows.filter(r=>r.arm==='AS').length;
       const a2=document.createElement('span'); a2.className='pill p-crt'; a2.textContent='CRT '+s.rows.filter(r=>r.arm==='CRT').length; sp.append(a1,a2); card.append(sp);
       const box=document.createElement('div'); box.className='rtable'; const t=document.createElement('table');
-      t.innerHTML='<thead><tr><th>PID</th><th>Randomised</th><th>Arm</th><th>Status</th><th>Next FUP</th></tr></thead>';
+      t.innerHTML='<thead><tr><th>PID</th><th>Randomised</th><th>Arm</th><th>Next FUP</th></tr></thead>';
       const tb=document.createElement('tbody');
       s.rows.slice().sort((x,y)=> (parseFloat(x.pid)||0)-(parseFloat(y.pid)||0) || String(x.pid).localeCompare(String(y.pid))).forEach(r=>{
         const tr=document.createElement('tr');
@@ -582,7 +584,7 @@ window.TREX_START = function(PKG){
         add(r.pid||'–','num'); tr.lastChild.style.fontWeight='600';
         add(r.rand?fmt(r.rand):'–','num');
         const p=document.createElement('span'); p.className='pill '+(r.arm==='AS'?'p-as':r.arm==='CRT'?'p-crt':'p-neutral'); p.textContent=r.arm==='AS'?'AS':r.arm||'–'; add(p);
-        add(r.status||'–'); add(r.next?fmt(r.next):'–','num');
+        tr.title = r.status || ''; add(r.next?fmt(r.next):'–','num');
         tb.append(tr);
       });
       t.append(tb); box.append(t); card.append(box); grid.append(card);
@@ -703,7 +705,7 @@ window.TREX_START = function(PKG){
     $('fu-state').textContent = 'Updated ' + fmtT(t);
     $('g-note').textContent = 'From Airtable · updated ' + fmtT(t);
   } else { $('fu-state').textContent = 'No data yet'; $('fu-state').className='pill p-neutral'; $('g-note').textContent = 'Waiting for the first automatic update.'; }
-  $('fu-foot').textContent = 'Record visits in Airtable (M… FUP date fields). This page is rebuilt automatically every hour.';
+  $('fu-foot').textContent = 'Bookings are saved in Airtable (Visits table). The page is rebuilt automatically, so other people see new bookings after the next update.';
   $('f-upd').textContent = D.updated ? fmt(new Date(D.updated)) : '';
   if (!ALLV){ const fp=document.querySelector('#followup .shead p'); if (fp) fp.textContent = 'Every randomised participant at the ' + WHO + ' sites with their next follow-up date. Dashed dates are estimated from randomisation; click a participant to book the visit or change the date.'; }
 };
