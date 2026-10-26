@@ -246,7 +246,7 @@ window.TREX_START = function(PKG){
       const randIso = cellText(c[F.rand]) || r.createdTime || '';
       return { pid: cellText(c[F.pid]), site: cellText(c[F.site]), country: r.country || cellText(c[F.country]), arm: armOf(c),
         rand: randIso ? new Date(randIso) : null, status: cellText(c[F.status]), next: parseDMY(cellText(c[F.next])),
-        visits: MV.map(([m,est,act])=>{ const a = parseDMY(cellText(c[act])); const e = parseDMY(cellText(c[est])); const d = a || e; return d ? {m, key:'M'+m, label:'M'+m, date:d, kind: a ? (a < startOfToday() ? 'done' : 'booked') : 'est', types:['FUP with physician'], time:'', other:''} : null; }).filter(Boolean) };
+        visits: MV.map(([m,est,act])=>{ let a = parseDMY(cellText(c[act])); const e = parseDMY(cellText(c[est])); if (a && e && a.toDateString()===e.toDateString()) a = null; const d = a || e; return d ? {m, key:'M'+m, label:'M'+m, date:d, kind: a ? (a < startOfToday() ? 'done' : 'booked') : 'est', types:['FUP with physician'], time:'', other:''} : null; }).filter(Boolean) };
     });
     AT.rows.forEach(r=>{ r.base = r.visits.map(v=>Object.assign({}, v)); r.baseNext = r.next; });
     applyBookings();
@@ -738,7 +738,7 @@ window.TREX_START = function(PKG){
     const btn=$('lbtn'); btn.disabled=true; btn.textContent='Opening…'; err('');
     try {
       const pkg = await unlock(pw);
-      if (!pkg){ err('Wrong password. Use the name of your country (for example: poland), or the coordinating team password.'); }
+      if (!pkg){ err('Wrong password. If you need access, contact Katarzyna Połomska: polomska.km@gmail.com, +48 794 037 928.'); }
       else {
         try { if ($('lrem').checked) localStorage.setItem(KEY, JSON.stringify({pw, exp: Date.now()+30*864e5})); else localStorage.removeItem(KEY); } catch(_){}
         enter(pkg); return;
